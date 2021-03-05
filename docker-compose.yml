@@ -1,0 +1,10 @@
+version: '3'
+services: 
+  car:
+    container_name: tritonai_ros_dkgym
+    build:
+      context: .
+      dockerfile: dockerfile
+    stdin_open: true
+    network_mode: "host"
+    command: ["file1.py", "file2.py"]
