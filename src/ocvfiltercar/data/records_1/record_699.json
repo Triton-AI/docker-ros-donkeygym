@@ -1,0 +1,1 @@
+{"cam/img": "img_699.jpg", "mux/throttle": 0.33917236328125, "mux/steering": -0.02215576171875, "mux/break": null, "gym/speed": 6.78055, "loc/segment": null, "gym/x": -7.417807, "gym/y": 0.5653042, "gym/z": 8.415464, "gym/cte": -2.786781, "loc/cte": null, "loc/break_indicator": null, "usr/del_record": false, "usr/toggle_record": true}

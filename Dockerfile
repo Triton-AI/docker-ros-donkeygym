@@ -11,6 +11,8 @@ RUN mkdir -p /catkin_ws/src
 # **********************
 # e.g. COPY src/ackermann_msgs  /catkin_ws/src/ackermann_msgs 
 
+# Copies OpenCV Filtering Catkin PKG
+COPY src/ocvfiltercar /catkin_ws/src/ocvfiltercar/
 
 # Python setups below
 RUN python3 -m pip install --upgrade pip
