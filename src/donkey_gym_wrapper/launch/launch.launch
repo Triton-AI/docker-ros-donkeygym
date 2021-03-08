@@ -1,0 +1,9 @@
+<launch>
+  <arg name="config" default="I_dont_know" />
+  <arg name="cf_path" default="donkey_gym_wrapper/config/car_config.yaml" />
+
+  <node pkg="donkey_gym_wrapper" type="donkeygym_wrapper" name="config" output="screen" >
+    <param name="cam" value="$(arg config)" />
+    <param name="nn_path" value="$(arg cf_path)" />
+  </node>
+</launch>

@@ -1,0 +1,27 @@
+car:
+  bio: Something
+  body_rgb:
+  - 24
+  - 43
+  - 73
+  body_style: car01
+  car_name: TritonRacer
+  country: US
+  font_size: 50
+  guid: some_random_string
+  racer_name: Triton AI
+default_connection: local
+lidar:
+  deg_inc: 2
+  enabled: false
+  max_range: 50.0
+local_connection:
+  artificial_latency: 0
+  host: 127.0.0.1
+  port: 9091
+  scene_name: generated_track
+remote_connection:
+  artificial_latency: 0
+  host: 127.0.0.1
+  port: 9091
+  scene_name: generated_track
