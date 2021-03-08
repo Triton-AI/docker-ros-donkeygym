@@ -3,8 +3,15 @@ FROM ros:noetic
 # apt-gets
 RUN apt-get update && apt-get install python3-pip -y && apt-get install git -y
 
+# Python setups below
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install opencv-python pillow
+
+RUN git clone https://github.com/tawnkramer/gym-donkeycar
+RUN python3 -m pip install -e gym-donkeycar
 
 # ROS setups
+RUN apt-get install ros-noetic-ackermann-msgs
 RUN mkdir -p /catkin_ws/src
 # **********************
 # TODO: Paul and Michael please put your catin_ws files into the src folder of this repositpry, and do COPY commands here to copy them into the image
@@ -15,15 +22,7 @@ RUN mkdir -p /catkin_ws/src
 COPY src/ocvfiltercar /catkin_ws/src/ocvfiltercar/
 COPY src/donkey_gym_wrapper /catkin_ws/src/donkey_gym_wrapper/
 
-RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; cd /catkin_ws catkin_make'
-
-
-# Python setups below
-RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install opencv-python pillow
-
-RUN git clone https://github.com/tawnkramer/gym-donkeycar
-RUN python3 -m pip install -e gym-donkeycar
+RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; cd /catkin_ws; catkin_make'
 
 # Run the codes
 ENTRYPOINT [ "rosrun" ]
