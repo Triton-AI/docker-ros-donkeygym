@@ -4,5 +4,10 @@ Paul and Michael: Please open Dockerfile and edit as needed. Some tasks are comm
 
 VS code has extension for docker and works well for me.
 
-To test build: `docker build .`
+## Test
+
+To test build: `docker build . -t [name]`
+
+Run intereactive mode  `docker run -it [name]`
+
 
