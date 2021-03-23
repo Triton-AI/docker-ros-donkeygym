@@ -23,6 +23,8 @@ COPY src/ocvfiltercar /catkin_ws/src/ocvfiltercar/
 COPY src/donkey_gym_wrapper /catkin_ws/src/donkey_gym_wrapper/
 
 RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; cd /catkin_ws; catkin_make'
+RUN /bin/bash -c "source /catkin_ws/devel/setup.bash"
+RUN /bin/bash -c "chmod -R +x /catkin_ws/*"
 
 # Run the codes
-ENTRYPOINT [ "rosrun" ]
+# ENTRYPOINT [ "rosrun" ]
