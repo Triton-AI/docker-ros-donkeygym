@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install python3-pip -y && apt-get install git -y
 # Python setups below
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install opencv-python-headless pillow
+# RUN apt-get install ros-$(rosversion -d)-cv-bridge   ### Don't know if we need this
 
 RUN git clone https://github.com/tawnkramer/gym-donkeycar
 RUN python3 -m pip install -e gym-donkeycar
@@ -13,8 +14,6 @@ RUN python3 -m pip install -e gym-donkeycar
 # ROS setups
 RUN apt-get install ros-noetic-ackermann-msgs
 RUN mkdir -p /catkin_ws/src
-# RUN pip uninstall opencv-python
-# RUN pip install opencv-python-headless
 
 # **********************
 # TODO: Paul and Michael please put your catin_ws files into the src folder of this repositpry, and do COPY commands here to copy them into the image
