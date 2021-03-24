@@ -6,7 +6,8 @@ RUN apt-get update && apt-get install python3-pip -y && apt-get install git -y
 # Python setups below
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install opencv-python-headless pillow
-# RUN apt-get install ros-$(rosversion -d)-cv-bridge   ### Don't know if we need this
+RUN apt-get install -y ros-$(rosversion -d)-cv-bridge
+# Don't know if we need this
 
 RUN git clone https://github.com/tawnkramer/gym-donkeycar
 RUN python3 -m pip install -e gym-donkeycar
@@ -26,6 +27,7 @@ COPY src/donkey_gym_wrapper /catkin_ws/src/donkey_gym_wrapper/
 
 RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; cd /catkin_ws; catkin_make'
 RUN /bin/bash -c "source /catkin_ws/devel/setup.bash"
+RUN ["/bin/bash", "-c", ". /catkin_ws/devel/setup.bash"]
 RUN /bin/bash -c "chmod -R +x /catkin_ws/*"
 
 # Run the codes
