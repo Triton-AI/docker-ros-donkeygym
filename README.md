@@ -6,12 +6,14 @@ VS code has extension for docker and works well for me.
 
 ## Test
 
-To test build: `docker build . -t [name]`
+Build and remove intermediate imgs(image named donkey): 
 
-Run intereactive mode  `docker run -it [name]`
+`docker build . -t donkey --rm`
+
+Run intereactive mode(container named dk):
 
 ```
-docker run --name dk -it donkey1
+docker run --name dk -it donkey
+docker exec --name dk -it donkey
 ```
-
 
