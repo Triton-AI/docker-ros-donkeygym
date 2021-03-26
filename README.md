@@ -10,4 +10,8 @@ To test build: `docker build . -t [name]`
 
 Run intereactive mode  `docker run -it [name]`
 
+```
+docker run --name dk -it donkey1
+```
+
 
