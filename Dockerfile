@@ -29,7 +29,7 @@ COPY run_car.sh /
 RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; cd /catkin_ws; catkin_make'
 # RUN /bin/bash -c "source /catkin_ws/devel/setup.bash"
 RUN ["/bin/bash", "-c", ". /catkin_ws/devel/setup.bash"]
-RUN /bin/bash -c "chmod -R +x /catkin_ws/*"
+RUN /bin/bash -c "chmod -R +x /catkin_ws/src/*"
 RUN /bin/bash -c "chmod +x run_car.sh"
 # Run the codes
 # ENTRYPOINT [ "rosrun" ]

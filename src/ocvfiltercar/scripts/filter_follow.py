@@ -71,7 +71,7 @@ class LineFollower(object):
 
             cv_image = self.bridge_object.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
-            print(e)
+            print(e, data)
             exit(1)
             
         # Crop image
