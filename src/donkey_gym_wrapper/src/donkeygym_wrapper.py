@@ -11,11 +11,14 @@ import math
 import numpy as np
 from threading import Thread
 from image_tools import ImageTools
+import yaml
+# from catkin_ws.src.ocvfiltercar.scripts.filter_follow import LineFollower
 
 
 class Wrapper:
     def __init__(self):
-        self.load_param('~config')
+        GYM_DICT = self.load_param('/catkin_ws/src/donkey_gym_wrapper/config/config.yaml')
+        print(GYM_DICT)
 
         self.gym = GymInterface(gym_config=GYM_DICT)
         self.drive_sub = rospy.Subscriber('/drive', AckermannDriveStamped, self.drive_callback)
@@ -34,6 +37,12 @@ class Wrapper:
             (steering, throttle, breaking, reset))
         Image = self.ImgT.convert_cv2_to_ros_msg(self.img)
         # print(lidar)
+
+    def load_param(self, path):
+        with open(path, "r") as file:
+            return yaml.load(file, Loader=yaml.FullLoader)
+
+
 
     def pub(self):
         while True:

@@ -153,20 +153,24 @@ def main():
     
     line_follower_object = LineFollower()
     
-    line_follower_object.camera_callback(3)
+    # line_follower_object.camera_callback(3)
 
     rate = rospy.Rate(5)
     ctrl_c = False
+
+    rospy.spin()
+
     def shutdownhook():
         # works better than the rospy.is_shut_down()
         line_follower_object.clean_up()
         rospy.loginfo("shutdown time!")
         ctrl_c = True
-    
+
     rospy.on_shutdown(shutdownhook)
-    
+
     while not ctrl_c:
         rate.sleep()
+    
     
     
 if __name__ == '__main__':
