@@ -6,14 +6,14 @@ VS code has extension for docker and works well for me.
 
 ## Test
 
-Build and remove intermediate imgs(image named donkey): 
+Build (image named donkey): 
 
 `docker build . -t donkey --rm`
 
-Run intereactive mode(container named dk):
+Run intereactive mode (container named dk):
 
-```
-docker run --name dk -it donkey
-docker exec --name dk -it donkey
-```
+`docker run --name dk -it donkey` or `docker exec --name dk -it donkey`
 
+Remove all dangling images:
+
+`docker image prune`
