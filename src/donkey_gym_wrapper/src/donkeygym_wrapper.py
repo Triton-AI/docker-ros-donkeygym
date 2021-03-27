@@ -22,14 +22,14 @@ class Wrapper:
 
         self.gym = GymInterface(gym_config=GYM_DICT)
 
-        self.img, _, _, _, _ ,_, _ = self.gym.step(0, 0, 0, 0)
-        print(f"img: {self.img}")
-        self.img = ImageTools.convert_cv2_to_ros_msg(self.img)
-        print(f"img: {self.img}")
+        self.img, self.pos_x, self.pos_y, _, _ ,_, self.lidar = self.gym.step(0.01, 1, 0, 0)
+        print(f"img: {self.img}, posx: {self.pos_x}, posy: {self.pos_y}, lidar: {self.lidar}")
+        # self.img = ImageTools.convert_cv2_to_ros_msg(self.img)
+        # print(f"img: {self.img}")
 
         self.drive_sub = rospy.Subscriber('/drive', AckermannDriveStamped, self.drive_callback)
         self.lidar_pub = rospy.Publisher('/lidar', LaserScan, queue_size=10)
-        self.image_pub = rospy.Publisher('/image', self.img, queue_size=10)
+        self.image_pub = rospy.Publisher('/image', Image, queue_size=10)
         self.twist_pub = rospy.Publisher('/twist', Twist, queue_size=10)
         self.ImgT = ImageTools()
         # self.max_steering = self.load_param("~max_steering") # create a launch file
