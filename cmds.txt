@@ -1,0 +1,21 @@
+RUN:
+
+cd catkin_ws/
+. devel/setup.bash
+roslaunch donkey_gym_wrapper launch.launch
+
+
+PUBLISH:
+
+cd catkin_ws/
+. devel/setup.bash
+rostopic pub /drive ackermann_msgs/AckermannDriveStamped '{drive: {speed: 1}}'
+
+
+DOCKER:
+
+docker build . -t donkey --rm
+docker run --name dk -it donkey
+
+docker exec -it dk bash
+docker rm dk

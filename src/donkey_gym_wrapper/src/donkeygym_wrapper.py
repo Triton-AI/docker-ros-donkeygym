@@ -12,7 +12,6 @@ import numpy as np
 from threading import Thread
 from image_tools import ImageTools
 import yaml
-# from catkin_ws.src.ocvfiltercar.scripts.filter_follow import LineFollower
 
 
 class Wrapper:
@@ -22,7 +21,7 @@ class Wrapper:
 
         self.gym = GymInterface(gym_config=GYM_DICT)
 
-        self.img, self.pos_x, self.pos_y, _, _ ,_, self.lidar = self.gym.step(0.01, 1, 0, 0)
+        self.img, self.pos_x, self.pos_y, _, _ ,_, self.lidar = self.gym.step(0.01, 0.01, 0, 0)
         print(f"img: {self.img}, posx: {self.pos_x}, posy: {self.pos_y}, lidar: {self.lidar}")
         # self.img = ImageTools.convert_cv2_to_ros_msg(self.img)
         # print(f"img: {self.img}")
@@ -36,9 +35,11 @@ class Wrapper:
         self.last_speed = 0
 
     def drive_callback(self, drive):
+        breaking, reset = 0, 0
+        self.max_steering = 1
         steering = (drive.drive.steering_angle / self.max_steering) * 180 / math.pi
         throttle = int(drive.drive.speed > self.last_speed)
-        twist_msg = Twist()
+        self.twist_msg = Twist()
         self.img, self.twist_msg.linear.x, self.twist_msg.linear.y, self.twist_msg.linear.z, self.last_speed, _, self.laser_msg = \
                                                         self.gym.step(steering, throttle, breaking, reset)
         Image = self.ImgT.convert_cv2_to_ros_msg(self.img)
@@ -55,15 +56,15 @@ class Wrapper:
         with open(path, "r") as file:
             return yaml.load(file, Loader=yaml.FullLoader)
 
-    def pub(self):
-        while True:
-            if self.lidar_pub is not None:
-                self.lidar_pub.publish()
-            if self.image_pub is not None:
-                # print(Image)
-                self.image_pub.publish()
-            if self.twist_pub is not None:
-                self.twist_pub.publish()
+    # def pub(self):
+    #     while True:
+    #         if self.lidar_pub is not None:
+    #             self.lidar_pub.publish()
+    #         if self.image_pub is not None:
+    #             # print(Image)
+    #             self.image_pub.publish()
+    #         if self.twist_pub is not None:
+    #             self.twist_pub.publish()
 
 
 def main():
@@ -72,6 +73,7 @@ def main():
     # a = AckermannDriveStamped()
     # a.drive.speed = 4
     # a.drive.steering_angle = 1
+    
     w = Wrapper()
     #T = Thread(target=w.pub, daemon=False)
     #T.start()
