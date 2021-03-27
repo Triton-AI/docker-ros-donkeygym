@@ -23,3 +23,6 @@ Some other commands:
 docker start -i dk
 docker exec -it dk bash
 ```
+Publish an message:
+
+`rostopic pub /drive ackermann_msgs/AckermannDriveStamped '{drive: {speed: 1}}'`
