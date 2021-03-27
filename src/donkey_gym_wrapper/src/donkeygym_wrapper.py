@@ -42,13 +42,17 @@ class Wrapper:
         self.img, self.twist_msg.linear.x, self.twist_msg.linear.y, self.twist_msg.linear.z, self.last_speed, _, self.laser_msg = \
                                                         self.gym.step(steering, throttle, breaking, reset)
         Image = self.ImgT.convert_cv2_to_ros_msg(self.img)
-        # print(lidar)
+
+        if self.lidar_pub is not None:
+            self.lidar_pub.publish()
+        if self.image_pub is not None:
+            self.image_pub.publish()
+        if self.twist_pub is not None:
+            self.twist_pub.publish()
 
     def load_param(self, path):
         with open(path, "r") as file:
             return yaml.load(file, Loader=yaml.FullLoader)
-
-
 
     def pub(self):
         while True:
@@ -68,8 +72,8 @@ def main():
     # a.drive.speed = 4
     # a.drive.steering_angle = 1
     w = Wrapper()
-    T = Thread(target=w.pub, daemon=False)
-    T.start()
+    #T = Thread(target=w.pub, daemon=False)
+    #T.start()
     # drive.publish(a)
 
     rospy.spin()

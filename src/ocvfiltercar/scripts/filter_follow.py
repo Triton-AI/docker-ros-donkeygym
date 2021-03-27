@@ -94,8 +94,8 @@ class LineFollower(object):
         except ZeroDivisionError:
             cy, cx = height/2, width/2
 
-        error_x = cx - width / 2;
-        angular_z = -error_x / 100;
+        error_x = cx - width / 2
+        angular_z = -error_x / 100
 
         # ROS Message publish
         a = AckermannDriveStamped()
