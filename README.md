@@ -12,17 +12,16 @@ Build (image named donkey):
 
 Run intereactive mode (container named dk):
 
-`docker run --name dk -it donkey` or `docker exec --name dk -it donkey`
+`docker run --name dk -it donkey bash` or `docker exec -it dk bash`
 
 Remove all dangling images:
 
 `docker image prune`
 
-Some other commands:
-```
-docker start -i dk
-docker exec -it dk bash
-```
-Publish an message:
+Start a container:
+
+`docker start -i dk`
+
+Publish a ros topic:
 
 `rostopic pub /drive ackermann_msgs/AckermannDriveStamped '{drive: {speed: 1}}'`
