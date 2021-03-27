@@ -42,6 +42,7 @@ class Wrapper:
         self.img, self.twist_msg.linear.x, self.twist_msg.linear.y, self.twist_msg.linear.z, self.last_speed, _, self.laser_msg = \
                                                         self.gym.step(steering, throttle, breaking, reset)
         Image = self.ImgT.convert_cv2_to_ros_msg(self.img)
+        print(f"img: {self.img}")
 
         if self.lidar_pub is not None:
             self.lidar_pub.publish()
