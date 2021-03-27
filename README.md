@@ -17,3 +17,9 @@ Run intereactive mode (container named dk):
 Remove all dangling images:
 
 `docker image prune`
+
+Some other commands:
+```
+docker start -i dk
+docker exec -it dk bash
+```
