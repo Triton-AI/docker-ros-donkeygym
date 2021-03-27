@@ -17,3 +17,12 @@ Run intereactive mode (container named dk):
 Remove all dangling images:
 
 `docker image prune`
+
+Some other commands:
+```
+docker start -i dk
+docker exec -it dk bash
+```
+Publish an message:
+
+`rostopic pub /drive ackermann_msgs/AckermannDriveStamped '{drive: {speed: 1}}'`
