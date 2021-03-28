@@ -7,10 +7,12 @@ RUN apt-get update && apt-get install python3-pip -y && apt-get install git -y
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install opencv-python-headless pillow
 RUN apt-get install -y ros-$(rosversion -d)-cv-bridge
+
 # Don't know if we need this
 
 RUN git clone https://github.com/tawnkramer/gym-donkeycar
 RUN python3 -m pip install -e gym-donkeycar
+RUN python3 -m pip install opencv-python
 
 # ROS setups
 RUN apt-get install ros-noetic-ackermann-msgs

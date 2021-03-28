@@ -9,6 +9,7 @@ from sensor_msgs.msg import Image
 from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
 from move_robot import MoveRosBots
 from geometry_msgs.msg import Twist
+from threading import Thread
 
 def callback(x):
     pass
@@ -24,10 +25,28 @@ class LineFollower(object):
         self.image_sub = rospy.Subscriber("/image", Image, self.camera_callback)
         self.drive_pub = rospy.Publisher('/drive', AckermannDriveStamped, queue_size=10)
 
+        # ROS Message publish
+        self.running = False;
+
         # self.moverosbots_object = MoveRosBots()
 
+    def dummy_publish(self):
+        while not self.running:
+            a = AckermannDriveStamped()
+
+            a.drive.steering_angle = 0.0
+            a.drive.speed = 0.0
+
+            #rospy.loginfo("ANGULAR VALUE: " + str(a.drive.steering_angle))
+            #rospy.loginfo("SPEED VALUE: " + str(a.drive.speed))
+
+            print("published drive msg")
+            self.drive_pub.publish(a)
+
+
     def camera_callback(self,data):
-        print(data, 123123)
+        self.running = True;
+
         # HSV filter for isolating all lines
         bestfilter = {
             "lowH": 16,
@@ -85,6 +104,14 @@ class LineFollower(object):
         higher = np.array([highR, highG, highB])
         mask = cv2.inRange(rgb, lower, higher)
 
+        cv2.imshow('cv_image', cv_image)
+        cv2.imshow('crop_img', crop_img)
+        cv2.imshow('mask', mask)
+        # Clean monitor positions
+        cv2.moveWindow("mask", 0,900);
+        cv2.moveWindow("crop_img", 0,400);
+        cv2.moveWindow("cv_image", 0,700);
+
         # Calculate c_x, c_y
         # Center Line:
         # Calculate centroid of the blob of binary image using ImageMoments
@@ -94,8 +121,12 @@ class LineFollower(object):
         except ZeroDivisionError:
             cy, cx = height/2, width/2
 
+        cv2.circle(result,(int(cx), int(cy)), 5,(0,0,255),-1)
+        cv2.imshow('result', result)
+        cv2.moveWindow('result', 400, 0)
+
         error_x = cx - width / 2
-        angular_z = -error_x / 100
+        angular_z = error_x / 100
 
         # ROS Message publish
         a = AckermannDriveStamped()
@@ -106,6 +137,7 @@ class LineFollower(object):
         rospy.loginfo("ANGULAR VALUE: " + str(a.drive.steering_angle))
         rospy.loginfo("SPEED VALUE: " + str(a.drive.speed))
 
+        print("published drive msg")
         self.drive_pub.publish(a)
 
         # SIDES
@@ -141,6 +173,9 @@ class LineFollower(object):
         cv2.imshow('gradx', grad_x)
         cv2.moveWindow('gradx', 400, 600)
         """
+        key = cv2.waitKey(50) & 0xFF
+        if key == ord('q'):
+            exit(0)
         
     def clean_up(self):
         # self.moverosbots_object.clean_class()
@@ -152,8 +187,11 @@ def main():
     rospy.init_node('line_following_node', anonymous=True)
     
     line_follower_object = LineFollower()
-    print(Image)
+    # print(Image)
     # line_follower_object.camera_callback(3)
+
+    t = Thread(target = line_follower_object.dummy_publish, daemon=False)
+    t.start()
 
     rate = rospy.Rate(5)
     ctrl_c = False

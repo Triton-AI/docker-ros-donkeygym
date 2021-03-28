@@ -21,9 +21,11 @@ class Wrapper:
 
         self.gym = GymInterface(gym_config=GYM_DICT)
 
-        # self.img, self.pos_x, self.pos_y, _, _ ,_, self.lidar = self.gym.step(0.01, 0.01, 0, 0)
-        # print(f"img: {self.img}, posx: {self.pos_x}, posy: {self.pos_y}, lidar: {self.lidar}")
-        # self.img = ImageTools.convert_cv2_to_ros_msg(self.img)
+        #self.img, self.pos_x, self.pos_y, _, _ ,_, self.lidar = self.gym.step(0.01, 0.01, 0, 0)
+        #self.img, self.pos_x, self.pos_y, _, _ ,_, self.lidar = self.gym.step(0.01, 0.01, 0, 0)
+
+        #print(f"img: {self.img}, posx: {self.pos_x}, posy: {self.pos_y}, lidar: {self.lidar}")
+        #self.img = ImageTools.convert_cv2_to_ros_msg(self.img)
         # print(f"img: {self.img}")
 
         self.drive_sub = rospy.Subscriber('/drive', AckermannDriveStamped, self.drive_callback)
@@ -44,14 +46,14 @@ class Wrapper:
         self.twist_msg = Twist()
         self.img, self.twist_msg.linear.x, self.twist_msg.linear.y, self.twist_msg.linear.z, self.last_speed, _, self.laser_msg = \
                                                         self.gym.step(steering, throttle, breaking, reset)
-        Image = self.ImgT.convert_cv2_to_ros_msg(self.img)
-        print(f"img: {self.img}")
+        Image2 = self.ImgT.convert_cv2_to_ros_msg(self.img)
+        # print(f"img: {self.img}")
 
         if self.lidar_pub is not None:
             self.lidar_pub.publish()
         if self.image_pub is not None:
             print(12)
-            self.image_pub.publish()
+            self.image_pub.publish(Image2)
         if self.twist_pub is not None:
             self.twist_pub.publish()
 
@@ -80,7 +82,7 @@ def main():
     
 
     w = Wrapper()
-    w.image_pub.publish()
+    #w.image_pub.publish(w.img)
     rospy.Rate(5)
     print(1213)
     #T = Thread(target=w.pub, daemon=False)
