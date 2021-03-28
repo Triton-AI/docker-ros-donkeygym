@@ -24,7 +24,8 @@ RUN mkdir -p /catkin_ws/src
 # Copies OpenCV Filtering Catkin PKG
 COPY src/ocvfiltercar /catkin_ws/src/ocvfiltercar/
 COPY src/donkey_gym_wrapper /catkin_ws/src/donkey_gym_wrapper/
-COPY rlaunch.bash /
+COPY rlaunch.bash / 
+COPY rcar.bash /
 
 SHELL ["/bin/bash", "-c"] 
 RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; cd /catkin_ws; catkin_make'

@@ -1,7 +1,7 @@
 <launch>
   <arg name="config" default="I_dont_know" />
   <arg name="cf_path" default="donkey_gym_wrapper/config/config.yaml" />
-  <include file="/catkin_ws/src/ocvfiltercar/launch/rcar.launch" />
+  <!-- <include file="/catkin_ws/src/ocvfiltercar/launch/rcar.launch" /> -->
   <node pkg="donkey_gym_wrapper" type="donkeygym_wrapper.py" name="donkeygym_wrapper" output="screen" >
     <param name="cam" value="$(arg config)" />
     <param name="nn_path" value="$(arg cf_path)" />

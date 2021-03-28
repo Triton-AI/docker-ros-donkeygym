@@ -24,10 +24,10 @@ class LineFollower(object):
         self.image_sub = rospy.Subscriber("/image", Image, self.camera_callback)
         self.drive_pub = rospy.Publisher('/drive', AckermannDriveStamped, queue_size=10)
 
-        self.moverosbots_object = MoveRosBots()
+        # self.moverosbots_object = MoveRosBots()
 
     def camera_callback(self,data):
-
+        print(data, 123123)
         # HSV filter for isolating all lines
         bestfilter = {
             "lowH": 16,
@@ -143,7 +143,7 @@ class LineFollower(object):
         """
         
     def clean_up(self):
-        self.moverosbots_object.clean_class()
+        # self.moverosbots_object.clean_class()
         cv2.destroyAllWindows()
         
         
@@ -152,7 +152,7 @@ def main():
     rospy.init_node('line_following_node', anonymous=True)
     
     line_follower_object = LineFollower()
-    
+    print(Image)
     # line_follower_object.camera_callback(3)
 
     rate = rospy.Rate(5)
@@ -168,8 +168,8 @@ def main():
 
     rospy.on_shutdown(shutdownhook)
 
-    while not ctrl_c:
-        rate.sleep()
+    # while not ctrl_c:
+    #     rate.sleep()
     
     
     

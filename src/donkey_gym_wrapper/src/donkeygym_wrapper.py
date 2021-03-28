@@ -21,8 +21,8 @@ class Wrapper:
 
         self.gym = GymInterface(gym_config=GYM_DICT)
 
-        self.img, self.pos_x, self.pos_y, _, _ ,_, self.lidar = self.gym.step(0.01, 0.01, 0, 0)
-        print(f"img: {self.img}, posx: {self.pos_x}, posy: {self.pos_y}, lidar: {self.lidar}")
+        # self.img, self.pos_x, self.pos_y, _, _ ,_, self.lidar = self.gym.step(0.01, 0.01, 0, 0)
+        # print(f"img: {self.img}, posx: {self.pos_x}, posy: {self.pos_y}, lidar: {self.lidar}")
         # self.img = ImageTools.convert_cv2_to_ros_msg(self.img)
         # print(f"img: {self.img}")
 
@@ -33,6 +33,8 @@ class Wrapper:
         self.ImgT = ImageTools()
         # self.max_steering = self.load_param("~max_steering") # create a launch file
         self.last_speed = 0
+        # self.image_pub.publish()
+        # print(1231)
 
     def drive_callback(self, drive):
         breaking, reset = 0, 0
@@ -48,6 +50,7 @@ class Wrapper:
         if self.lidar_pub is not None:
             self.lidar_pub.publish()
         if self.image_pub is not None:
+            print(12)
             self.image_pub.publish()
         if self.twist_pub is not None:
             self.twist_pub.publish()
@@ -68,17 +71,22 @@ class Wrapper:
 
 
 def main():
-    rospy.init_node("Wrapper_node", anonymous=True)
+    rospy.init_node("wrapper_node", anonymous=True)
     # drive = rospy.Publisher("/drive", AckermannDriveStamped, queue_size=10)
     # a = AckermannDriveStamped()
     # a.drive.speed = 4
     # a.drive.steering_angle = 1
+
     
+
     w = Wrapper()
+    w.image_pub.publish()
+    rospy.Rate(5)
+    print(1213)
     #T = Thread(target=w.pub, daemon=False)
     #T.start()
     # drive.publish(a)
-
+    # rospy.sleep(1)
     rospy.spin()
 
 
