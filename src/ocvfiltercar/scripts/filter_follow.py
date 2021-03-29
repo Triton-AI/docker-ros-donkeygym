@@ -60,9 +60,9 @@ class LineFollower(object):
         rgbcenterfilter = {
             "lowR": 200,
             "highR": 255,
-            "lowG": 100,
+            "lowG": 200,
             "highG": 255,
-            "lowB": 100,
+            "lowB": 0,
             "highB": 170
         }
         # RGB for mask to isolate white borders
@@ -105,7 +105,7 @@ class LineFollower(object):
         mask = cv2.inRange(rgb, lower, higher)
 
         cv2.imshow('cv_image', cv_image)
-        cv2.imshow('crop_img', crop_img)
+        cv2.imshow('rgb', rgb)
         cv2.imshow('mask', mask)
         # Clean monitor positions
         cv2.moveWindow("mask", 0,900);
@@ -120,13 +120,14 @@ class LineFollower(object):
             cx, cy = m['m10']/m['m00'], m['m01']/m['m00']
         except ZeroDivisionError:
             cy, cx = height/2, width/2
-
+            
+        result =cv2.bitwise_and(crop_img,crop_img, mask = mask)
         cv2.circle(result,(int(cx), int(cy)), 5,(0,0,255),-1)
         cv2.imshow('result', result)
         cv2.moveWindow('result', 400, 0)
 
         error_x = cx - width / 2
-        angular_z = error_x / 100
+        angular_z = -error_x / 100
 
         # ROS Message publish
         a = AckermannDriveStamped()
