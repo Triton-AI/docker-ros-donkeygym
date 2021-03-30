@@ -25,3 +25,13 @@ Start a container:
 Publish a ros topic:
 
 `rostopic pub /drive ackermann_msgs/AckermannDriveStamped '{drive: {speed: 1}}'`
+
+
+Note:
+Run Docker after building donkey:
+- xhost +local:root
+- docker run -it --env="DISPLAY" --env="QT_X11_NO_MITSHM=1" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --network="host" donkey
+
+To open a new terminal in container:
+- docker ps
+- docker exec -it [name] bash

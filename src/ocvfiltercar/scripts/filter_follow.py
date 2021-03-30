@@ -97,7 +97,7 @@ class LineFollower(object):
         height, width, channels = cv_image.shape
         crop_img = cv_image[int(height/2):height, 0:width]
 
-        rgb = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
+        rgb = crop_img #cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
 
         # Create filter mask
         lower = np.array([lowR, lowG, lowB])
@@ -132,8 +132,8 @@ class LineFollower(object):
         # ROS Message publish
         a = AckermannDriveStamped()
 
-        a.drive.steering_angle = angular_z
-        a.drive.speed = 2 / (1 + math.exp(abs(4 * angular_z)))
+        a.drive.steering_angle = - angular_z
+        a.drive.speed = 8 / (1 + math.exp(abs(4 * angular_z)))
 
         rospy.loginfo("ANGULAR VALUE: " + str(a.drive.steering_angle))
         rospy.loginfo("SPEED VALUE: " + str(a.drive.speed))
