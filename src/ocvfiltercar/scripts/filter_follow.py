@@ -1,24 +1,22 @@
 #!/usr/bin/env python3
 import rospy
 import cv2
-import numpy as np
 import math
 import time
+import numpy as np
 from os import path
-from cv_bridge import CvBridge, CvBridgeError
+from simple_pid import PID
+from threading import Thread
 from sensor_msgs.msg import Image
-from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
 from move_robot import MoveRosBots
 from geometry_msgs.msg import Twist
-from threading import Thread
+from cv_bridge import CvBridge, CvBridgeError
+from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
 
-def callback(x):
-    pass
 
 class LineFollower(object):
 
     def __init__(self):
-    
         self.bridge_object = CvBridge()
         self.datapath = "/home/michaelji/tritonai/catkin_ws/src/ocvfiltercar/data/records_1/"
 
@@ -46,11 +44,11 @@ class LineFollower(object):
         }
         # RGB for mask to isolate white borders
         self.rgbsidefilter = {
-            "lowR": 200,
+            "lowR": 216,
             "highR": 255,
-            "lowG": 200,
+            "lowG": 222,
             "highG": 255,
-            "lowB": 200,
+            "lowB": 198,
             "highB": 255
         }
 
@@ -62,6 +60,14 @@ class LineFollower(object):
         self.a_drive.drive.steering_angle = 0.0
         self.a_drive.drive.speed = 0.0
 
+        self.throttle_pid = PID(0.25, 0.0, 0.005)
+        self.steering_pid = PID(0.1, 0.0005, 0.35)
+        # self.throttle_pid.output_limits = (2, 1000)
+
+        self.angular_z, self.speed, self.steering = 0, 0, 0
+
+        self.speed1 = 0
+
     def dummy_publish(self):
         print("\n")
         while not self.running:
@@ -71,8 +77,14 @@ class LineFollower(object):
         print("\n")
         cv2.namedWindow("Image")
         cv2.moveWindow("Image", 120,850)
+
+        throttle_pid = PID(0.25, 0.0, 0.005)
+        steering_pid = PID(0.1, 0.0005, 0.35)
+
         while 1:
+            # rospy.loginfo(f"{self.speed1}")
             rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}")
+            
 
             cv2.circle(self.rgb,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
             cv2.imshow('Image', self.rgb)
@@ -102,7 +114,7 @@ class LineFollower(object):
             
         # Crop image
         height, width, channels = cv_image.shape
-        rgb = cv_image[int(height/2):height, 0:width]
+        rgb = cv_image[int(height/3):int(height* (3/4)), 0:width]
         self.rgb = rgb
 
         # Create filter mask
@@ -121,19 +133,29 @@ class LineFollower(object):
         self.cy, self.cx = cy, cx
 
         error_x = cx - width / 2
-        angular_z = -error_x / 100
+        self.angular_z = (error_x / 100) * self.ang_mul
         
         # Jump start!!!
         if self.isStart == False:
-            self.a_drive.drive.steering_angle = - angular_z * self.ang_mul
+            self.a_drive.drive.steering_angle = self.angular_z * self.ang_mul
             self.a_drive.drive.speed = 2
             self.drive_pub.publish(self.a_drive)
             time.sleep(0.8)
             self.isStart = True
         
-        self.a_drive.drive.steering_angle = - angular_z * self.ang_mul
-        speed = 25 / (1 + math.exp(abs(10 * angular_z)))
-        self.a_drive.drive.speed = speed # if speed > 1 else 1
+        
+
+        
+        self.steering = self.steering_pid(self.angular_z)
+        
+
+        self.a_drive.drive.steering_angle = -self.steering
+        self.speed1 = 1 / (math.exp(abs(self.steering / 0.0827 * 10))) * 14
+
+        # self.speed = -self.throttle_pid(self.speed1)
+        self.speed = self.speed1
+
+        self.a_drive.drive.speed = self.speed # if speed > 1 else 1
 
         # rospy.loginfo("ANGULAR VALUE: " + str(a.drive.steering_angle))
         # rospy.loginfo("SPEED VALUE: " + str(a.drive.speed))

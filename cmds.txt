@@ -21,8 +21,6 @@ docker image prune
 docker exec -it dk bash
 docker rm dk
 
-set-variable -name DISPLAY -value 192.168.0.23:0.0
-
 xhost +local:root
 docker run -it --name dk --env="DISPLAY" --env="QT_X11_NO_MITSHM=1" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --network="host" donkey 
 

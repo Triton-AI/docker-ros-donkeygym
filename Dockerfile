@@ -13,6 +13,7 @@ RUN apt-get install -y ros-$(rosversion -d)-cv-bridge
 RUN git clone https://github.com/tawnkramer/gym-donkeycar
 RUN python3 -m pip install -e gym-donkeycar
 RUN python3 -m pip install opencv-python
+RUN python3 -m pip install simple-pid
 
 # ROS setups
 RUN apt-get install ros-noetic-ackermann-msgs

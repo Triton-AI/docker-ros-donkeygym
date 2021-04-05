@@ -26,7 +26,7 @@ cv2.createTrackbar('highV', 'sliders', highV, 255, callback)
 
 while True:
     # ret, frame = cap.read()
-    frame = cv2.imread('/home/michaelji/rgb_screenshot_29.03.2021.png')
+    frame = cv2.imread('Image_screenshot_05.04.2021.png')
     #frame = frame[360:]
     # get trackbar positions
     lowH = cv2.getTrackbarPos('lowH', 'sliders')
