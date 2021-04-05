@@ -16,6 +16,17 @@ DOCKER:
 
 docker build . -t donkey --rm
 docker run --name dk -it donkey
+docker image prune
 
 docker exec -it dk bash
 docker rm dk
+
+set-variable -name DISPLAY -value 192.168.0.23:0.0
+
+xhost +local:root
+docker run -it --name dk --env="DISPLAY" --env="QT_X11_NO_MITSHM=1" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --network="host" donkey 
+
+simple-pid; 26 sec
+
+MAX Steering: 0.0827 (approx)
+Speed can go up to 26 or something

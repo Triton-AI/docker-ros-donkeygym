@@ -22,34 +22,12 @@ class LineFollower(object):
         self.bridge_object = CvBridge()
         self.datapath = "/home/michaelji/tritonai/catkin_ws/src/ocvfiltercar/data/records_1/"
 
-        #self.image_sub = rospy.Subscriber("/robot1/camera1/image_raw",Image,self.camera_callback)
+        # ROS Message publish
         self.image_sub = rospy.Subscriber("/image", Image, self.camera_callback)
         self.drive_pub = rospy.Publisher('/drive', AckermannDriveStamped, queue_size=10)
 
-        # ROS Message publish
-        self.running, self.cond = False, False
-
-        # self.moverosbots_object = MoveRosBots()
-
-    def dummy_publish(self):
-        while not self.running:
-            a = AckermannDriveStamped()
-
-            a.drive.steering_angle = 0.0
-            a.drive.speed = 0.0
-
-            #rospy.loginfo("ANGULAR VALUE: " + str(a.drive.steering_angle))
-            #rospy.loginfo("SPEED VALUE: " + str(a.drive.speed))
-
-            print("published drive msg")
-            self.drive_pub.publish(a)
-
-
-    def camera_callback(self,data):
-        self.running = True;
-
         # HSV filter for isolating all lines
-        bestfilter = {
+        self.bestfilter = {
             "lowH": 16,
             "highH": 43,
             "lowS": 51,
@@ -58,7 +36,7 @@ class LineFollower(object):
             "highV": 213
         }
         # RGB for mask to isolate yellow center line
-        rgbcenterfilter = {
+        self.rgbcenterfilter = {
             "lowR": 200,
             "highR": 255,
             "lowG": 200,
@@ -67,7 +45,7 @@ class LineFollower(object):
             "highB": 170
         }
         # RGB for mask to isolate white borders
-        rgbsidefilter = {
+        self.rgbsidefilter = {
             "lowR": 200,
             "highR": 255,
             "lowG": 200,
@@ -76,19 +54,47 @@ class LineFollower(object):
             "highB": 255
         }
 
+        # Misc
+        self.running, self.isStart, self.a_drive = False, False, None
+        self.ang_mul = 0.17
+
+        self.a_drive = AckermannDriveStamped()
+        self.a_drive.drive.steering_angle = 0.0
+        self.a_drive.drive.speed = 0.0
+
+    def dummy_publish(self):
+        print("\n")
+        while not self.running:
+            print("Start to publish drive msg, wait for wrapper node to recieve!", end="\r")
+            self.drive_pub.publish(self.a_drive)
+
+        print("\n")
+        cv2.namedWindow("Image")
+        cv2.moveWindow("Image", 120,850)
+        while 1:
+            rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}")
+
+            cv2.circle(self.rgb,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
+            cv2.imshow('Image', self.rgb)
+            cv2.waitKey(30)
+
+    def camera_callback(self,data):
+        # Initialize
+        self.running, self.isShow = True, True
+        
+
         # Load filter values
-        lowR = rgbcenterfilter.get("lowR")
-        highR = rgbcenterfilter.get("highR")
-        lowG = rgbcenterfilter.get("lowG")
-        highG = rgbcenterfilter.get("highG")
-        lowB = rgbcenterfilter.get("lowB")
-        highB = rgbcenterfilter.get("highB")
+        lowR = self.rgbcenterfilter.get("lowR")
+        highR = self.rgbcenterfilter.get("highR")
+        lowG = self.rgbcenterfilter.get("lowG")
+        highG = self.rgbcenterfilter.get("highG")
+        lowB = self.rgbcenterfilter.get("lowB")
+        highB = self.rgbcenterfilter.get("highB")
 
         # Get image from IMG message
         try:
-        # We select bgr8 because its the OpneCV encoding by default
+            # We select bgr8 because its the OpneCV encoding by default
             # DEBUG: cv_image = cv2.imread(self.datapath + "img_" + str(0) + ".jpg")
-
             cv_image = self.bridge_object.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e, data)
@@ -96,22 +102,13 @@ class LineFollower(object):
             
         # Crop image
         height, width, channels = cv_image.shape
-        crop_img = cv_image[int(height/2):height, 0:width]
-
-        rgb = crop_img #cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
+        rgb = cv_image[int(height/2):height, 0:width]
+        self.rgb = rgb
 
         # Create filter mask
         lower = np.array([lowR, lowG, lowB])
         higher = np.array([highR, highG, highB])
         mask = cv2.inRange(rgb, lower, higher)
-
-        # cv2.imshow('cv_image', cv_image)
-        # cv2.imshow('rgb', rgb)
-        # cv2.imshow('mask', mask)
-        # Clean monitor positions
-        # cv2.moveWindow("mask", 0,900);
-        # cv2.moveWindow("crop_img", 0,400);
-        # cv2.moveWindow("cv_image", 0,700);
 
         # Calculate c_x, c_y
         # Center Line:
@@ -121,35 +118,27 @@ class LineFollower(object):
             cx, cy = m['m10']/m['m00'], m['m01']/m['m00']
         except ZeroDivisionError:
             cy, cx = height/2, width/2
-            
-        # result =cv2.bitwise_and(crop_img,crop_img, mask = mask)
-        # cv2.circle(result,(int(cx), int(cy)), 5,(0,0,255),-1)
-        # cv2.imshow('result', result)
-        # cv2.moveWindow('result', 400, 0)
+        self.cy, self.cx = cy, cx
 
         error_x = cx - width / 2
         angular_z = -error_x / 100
-
-        # ROS Message publish
-        a = AckermannDriveStamped()
-
-        multipliar = 0.2
-        if self.cond == False:
-            a.drive.steering_angle = - angular_z * multipliar
-            a.drive.speed = 2
-            self.drive_pub.publish(a)
-            time.sleep(1)
-            self.cond = True
         
-        a.drive.steering_angle = - angular_z * multipliar
-        speed = 20 / (1 + math.exp(abs(10 * angular_z)))
-        a.drive.speed = speed if speed > 1 else 1
+        # Jump start!!!
+        if self.isStart == False:
+            self.a_drive.drive.steering_angle = - angular_z * self.ang_mul
+            self.a_drive.drive.speed = 2
+            self.drive_pub.publish(self.a_drive)
+            time.sleep(0.8)
+            self.isStart = True
+        
+        self.a_drive.drive.steering_angle = - angular_z * self.ang_mul
+        speed = 25 / (1 + math.exp(abs(10 * angular_z)))
+        self.a_drive.drive.speed = speed # if speed > 1 else 1
 
         # rospy.loginfo("ANGULAR VALUE: " + str(a.drive.steering_angle))
         # rospy.loginfo("SPEED VALUE: " + str(a.drive.speed))
 
-        # print("published drive msg")
-        self.drive_pub.publish(a)
+        self.drive_pub.publish(self.a_drive)
 
         # SIDES
         # Use gradients to determine steering
@@ -184,42 +173,28 @@ class LineFollower(object):
         cv2.imshow('gradx', grad_x)
         cv2.moveWindow('gradx', 400, 600)
         """
-        key = cv2.waitKey(50) & 0xFF
-        if key == ord('q'):
-            exit(0)
         
     def clean_up(self):
-        # self.moverosbots_object.clean_class()
         cv2.destroyAllWindows()
-        
         
 
 def main():
     rospy.init_node('line_following_node', anonymous=True)
-    
     line_follower_object = LineFollower()
-    # print(Image)
-    # line_follower_object.camera_callback(3)
 
+    # New thread
     t = Thread(target = line_follower_object.dummy_publish, daemon=False)
     t.start()
 
     rate = rospy.Rate(60)
-    ctrl_c = False
-
     rospy.spin()
 
     def shutdownhook():
         # works better than the rospy.is_shut_down()
         line_follower_object.clean_up()
         rospy.loginfo("shutdown time!")
-        ctrl_c = True
 
     rospy.on_shutdown(shutdownhook)
-
-    # while not ctrl_c:
-    #     rate.sleep()
-    
     
     
 if __name__ == '__main__':
