@@ -52,7 +52,7 @@ class Wrapper:
         if self.lidar_pub is not None:
             self.lidar_pub.publish()
         if self.image_pub is not None:
-            print(12)
+            # print(12)
             self.image_pub.publish(Image2)
         if self.twist_pub is not None:
             self.twist_pub.publish()
@@ -83,7 +83,7 @@ def main():
 
     w = Wrapper()
     #w.image_pub.publish(w.img)
-    rospy.Rate(5)
+    rospy.Rate(60)
     print(1213)
     #T = Thread(target=w.pub, daemon=False)
     #T.start()

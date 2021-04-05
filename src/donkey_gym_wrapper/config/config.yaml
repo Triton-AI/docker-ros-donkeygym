@@ -22,6 +22,7 @@ local_connection:
   scene_name: generated_track
 remote_connection:
   artificial_latency: 0
-  host: 127.0.0.1
+  host: host.docker.internal
   port: 9091
   scene_name: warren
+  

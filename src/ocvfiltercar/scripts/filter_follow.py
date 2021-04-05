@@ -3,6 +3,7 @@ import rospy
 import cv2
 import numpy as np
 import math
+import time
 from os import path
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
@@ -26,7 +27,7 @@ class LineFollower(object):
         self.drive_pub = rospy.Publisher('/drive', AckermannDriveStamped, queue_size=10)
 
         # ROS Message publish
-        self.running = False;
+        self.running, self.cond = False, False
 
         # self.moverosbots_object = MoveRosBots()
 
@@ -104,13 +105,13 @@ class LineFollower(object):
         higher = np.array([highR, highG, highB])
         mask = cv2.inRange(rgb, lower, higher)
 
-        cv2.imshow('cv_image', cv_image)
-        cv2.imshow('rgb', rgb)
-        cv2.imshow('mask', mask)
+        # cv2.imshow('cv_image', cv_image)
+        # cv2.imshow('rgb', rgb)
+        # cv2.imshow('mask', mask)
         # Clean monitor positions
-        cv2.moveWindow("mask", 0,900);
-        cv2.moveWindow("crop_img", 0,400);
-        cv2.moveWindow("cv_image", 0,700);
+        # cv2.moveWindow("mask", 0,900);
+        # cv2.moveWindow("crop_img", 0,400);
+        # cv2.moveWindow("cv_image", 0,700);
 
         # Calculate c_x, c_y
         # Center Line:
@@ -121,10 +122,10 @@ class LineFollower(object):
         except ZeroDivisionError:
             cy, cx = height/2, width/2
             
-        result =cv2.bitwise_and(crop_img,crop_img, mask = mask)
-        cv2.circle(result,(int(cx), int(cy)), 5,(0,0,255),-1)
-        cv2.imshow('result', result)
-        cv2.moveWindow('result', 400, 0)
+        # result =cv2.bitwise_and(crop_img,crop_img, mask = mask)
+        # cv2.circle(result,(int(cx), int(cy)), 5,(0,0,255),-1)
+        # cv2.imshow('result', result)
+        # cv2.moveWindow('result', 400, 0)
 
         error_x = cx - width / 2
         angular_z = -error_x / 100
@@ -132,13 +133,22 @@ class LineFollower(object):
         # ROS Message publish
         a = AckermannDriveStamped()
 
-        a.drive.steering_angle = - angular_z
-        a.drive.speed = 8 / (1 + math.exp(abs(4 * angular_z)))
+        multipliar = 0.2
+        if self.cond == False:
+            a.drive.steering_angle = - angular_z * multipliar
+            a.drive.speed = 2
+            self.drive_pub.publish(a)
+            time.sleep(1)
+            self.cond = True
+        
+        a.drive.steering_angle = - angular_z * multipliar
+        speed = 20 / (1 + math.exp(abs(10 * angular_z)))
+        a.drive.speed = speed if speed > 1 else 1
 
-        rospy.loginfo("ANGULAR VALUE: " + str(a.drive.steering_angle))
-        rospy.loginfo("SPEED VALUE: " + str(a.drive.speed))
+        # rospy.loginfo("ANGULAR VALUE: " + str(a.drive.steering_angle))
+        # rospy.loginfo("SPEED VALUE: " + str(a.drive.speed))
 
-        print("published drive msg")
+        # print("published drive msg")
         self.drive_pub.publish(a)
 
         # SIDES
@@ -194,7 +204,7 @@ def main():
     t = Thread(target = line_follower_object.dummy_publish, daemon=False)
     t.start()
 
-    rate = rospy.Rate(5)
+    rate = rospy.Rate(60)
     ctrl_c = False
 
     rospy.spin()
