@@ -1,17 +1,3 @@
-RUN:
-
-cd catkin_ws/
-. devel/setup.bash
-roslaunch donkey_gym_wrapper launch.launch
-
-
-PUBLISH:
-
-cd catkin_ws/
-. devel/setup.bash
-rostopic pub /drive ackermann_msgs/AckermannDriveStamped '{drive: {speed: 1}}'
-
-
 DOCKER:
 
 docker build . -t donkey --rm
@@ -22,9 +8,13 @@ docker exec -it dk bash
 docker rm dk
 
 xhost +local:root
-docker run -it --name dk --env="DISPLAY" --env="QT_X11_NO_MITSHM=1" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --network="host" donkey 
+docker run -it --name dk --env="DISPLAY" --env="QT_X11_NO_MITSHM=1" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --network="host" donkey
 
-simple-pid; 26 sec
-
+NOTES:
 MAX Steering: 0.0827 (approx)
 Speed can go up to 26 or something
+MAX time by haoru: 26 sec
+
+my_lap_time:
+1st: 36
+2nd: 33.7, 33.44, 34.55, 33.6

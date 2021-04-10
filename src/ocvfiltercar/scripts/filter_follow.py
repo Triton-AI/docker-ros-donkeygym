@@ -51,115 +51,115 @@ class LineFollower(object):
             "lowB": 198,
             "highB": 255
         }
+        self.center_lower = np.array([self.rgbcenterfilter["lowR"], self.rgbcenterfilter["lowG"], self.rgbcenterfilter["lowB"]])
+        self.center_higher = np.array([self.rgbcenterfilter["highR"],self.rgbcenterfilter["highG"], self.rgbcenterfilter["highB"]])
+        self.border_lower = np.array([self.rgbsidefilter["lowR"], self.rgbsidefilter["lowG"], self.rgbsidefilter["lowB"]])
+        self.border_higher = np.array([self.rgbsidefilter["highR"], self.rgbsidefilter["highG"], self.rgbsidefilter["highB"]])
 
         # Misc
         self.running, self.isStart, self.a_drive = False, False, None
-        self.ang_mul = 0.17
-
+        self.angular_z, self.speed, self.steering, self.ang_mul = 0, 0, 0, 0.28
         self.a_drive = AckermannDriveStamped()
         self.a_drive.drive.steering_angle = 0.0
         self.a_drive.drive.speed = 0.0
-
         self.throttle_pid = PID(0.25, 0.0, 0.005)
         self.steering_pid = PID(0.1, 0.0005, 0.35)
-        # self.throttle_pid.output_limits = (2, 1000)
+        self.last_error, self.last_steering, self.last_speed = None, None, None
 
-        self.angular_z, self.speed, self.steering = 0, 0, 0
-
-        self.speed1 = 0
+        self.last_spot, self.last_border_x = None, None
 
     def dummy_publish(self):
+        # Before start
         print("\n")
         while not self.running:
             print("Start to publish drive msg, wait for wrapper node to recieve!", end="\r")
             self.drive_pub.publish(self.a_drive)
 
+        # After start
         print("\n")
-        cv2.namedWindow("Image")
-        cv2.moveWindow("Image", 120,850)
-
-        throttle_pid = PID(0.25, 0.0, 0.005)
-        steering_pid = PID(0.1, 0.0005, 0.35)
-
+        cv2.namedWindow("ylo")
+        cv2.moveWindow("ylo", 120,700)
+        cv2.namedWindow("wte")
+        cv2.moveWindow("wte", 120,870)
         while 1:
-            # rospy.loginfo(f"{self.speed1}")
+            ##### Yellow line
             rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}")
-            
+            cv2.circle(self.bgr,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
+            cv2.imshow('ylo', self.bgr)
 
-            cv2.circle(self.rgb,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
-            cv2.imshow('Image', self.rgb)
-            cv2.waitKey(30)
+            ##### White line testing
+            mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
+            canny = cv2.Canny(mask, 100, 100)
+
+            mid_y = mask.shape[0] // 2
+            spot = np.where(canny[mid_y, :] == 255)[0]
+            if len(spot) < 1:
+                spot = self.last_spot
+            self.last_spot = spot
+
+            if np.ptp(spot) < 50:  # One edge is invisible (extreme cases)
+                if self.last_border_x > mask.shape[1] // 2:
+                    mid_x = (mask.shape[1] + (np.max(spot) + np.min(spot)) // 2) // 2  # Right extreme
+                else:
+                    mid_x = (np.max(spot) + np.min(spot)) // 4  # Left extreme
+                # rospy.loginfo(f"{mid_x}, {mask.shape[1]}, {spot}")
+            else:
+                mid_x = (np.max(spot) + np.min(spot)) // 2
+                if not self.last_border_x or abs(self.last_border_x - mid_x) < 25:
+                    self.last_border_x = mid_x
+                else:
+                    mid_x = self.last_border_x
+                    # rospy.loginfo(mid_x)
+                # rospy.loginfo(f"{spot}, {(np.max(spot) + np.min(spot)) // 2}")
+
+            cv2.circle(mask, (int(mid_x), int(mid_y)), 5, (255, 0, 0), -1)
+            cv2.imshow("wte", mask)
+            cv2.waitKey(60)
 
     def camera_callback(self,data):
         # Initialize
         self.running, self.isShow = True, True
-        
-
-        # Load filter values
-        lowR = self.rgbcenterfilter.get("lowR")
-        highR = self.rgbcenterfilter.get("highR")
-        lowG = self.rgbcenterfilter.get("lowG")
-        highG = self.rgbcenterfilter.get("highG")
-        lowB = self.rgbcenterfilter.get("lowB")
-        highB = self.rgbcenterfilter.get("highB")
 
         # Get image from IMG message
-        try:
-            # We select bgr8 because its the OpneCV encoding by default
-            # DEBUG: cv_image = cv2.imread(self.datapath + "img_" + str(0) + ".jpg")
-            cv_image = self.bridge_object.imgmsg_to_cv2(data, "bgr8")
-        except CvBridgeError as e:
-            print(e, data)
-            exit(1)
-            
+        cv_image = self.bridge_object.imgmsg_to_cv2(data, "bgr8")  # We select bgr8 because its the OpneCV encoding by default
+
         # Crop image
         height, width, channels = cv_image.shape
-        rgb = cv_image[int(height/3):int(height* (3/4)), 0:width]
-        self.rgb = rgb
+        self.bgr = cv_image[int(height / 3):int(height * (3 / 4)), 0:width]
 
         # Create filter mask
-        lower = np.array([lowR, lowG, lowB])
-        higher = np.array([highR, highG, highB])
-        mask = cv2.inRange(rgb, lower, higher)
+        mask = cv2.inRange(self.bgr, self.center_lower, self.center_higher)
 
-        # Calculate c_x, c_y
-        # Center Line:
-        # Calculate centroid of the blob of binary image using ImageMoments
+        # Calculate centroid of the blob of binary image using ImageMoments --> ERROR
         m = cv2.moments(mask, False)
         try:
-            cx, cy = m['m10']/m['m00'], m['m01']/m['m00']
+            self.cx, self.cy = m['m10']/m['m00'], m['m01']/m['m00']
         except ZeroDivisionError:
-            cy, cx = height/2, width/2
-        self.cy, self.cx = cy, cx
+            self.cy, self.cx = height / 2, width / 2
 
-        error_x = cx - width / 2
+        error_x = self.cx - width / 2
+        if not self.last_error or abs(error_x - self.last_error) < 80:  # error stability control
+            self.last_error = error_x
+        else:
+            error_x = self.last_error
+        
+        # Calculate speed and steering values
         self.angular_z = (error_x / 100) * self.ang_mul
-        
-        # Jump start!!!
-        if self.isStart == False:
-            self.a_drive.drive.steering_angle = self.angular_z * self.ang_mul
-            self.a_drive.drive.speed = 2
-            self.drive_pub.publish(self.a_drive)
-            time.sleep(0.8)
-            self.isStart = True
-        
-        
-
-        
         self.steering = self.steering_pid(self.angular_z)
+        if not self.last_steering or abs(self.last_steering - self.steering) < 0.006:  # steering stability control
+            self.last_steering = self.steering
+        else:
+            self.steering = self.last_steering
         
-
         self.a_drive.drive.steering_angle = -self.steering
-        self.speed1 = 1 / (math.exp(abs(self.steering / 0.0827 * 10))) * 14
-
-        # self.speed = -self.throttle_pid(self.speed1)
-        self.speed = self.speed1
-
-        self.a_drive.drive.speed = self.speed # if speed > 1 else 1
-
-        # rospy.loginfo("ANGULAR VALUE: " + str(a.drive.steering_angle))
-        # rospy.loginfo("SPEED VALUE: " + str(a.drive.speed))
-
+        self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 17
+        if not self.last_speed or abs(self.speed - self.last_speed) < 7:  # speed stability control
+            self.last_speed = self.speed
+        else:
+            self.speed = self.last_speed
+        self.a_drive.drive.speed = self.speed
+        
+        # Publish drive message
         self.drive_pub.publish(self.a_drive)
 
         # SIDES
