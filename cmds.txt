@@ -1,5 +1,4 @@
-DOCKER:
-
+Docker:
 docker build . -t donkey --rm
 docker run --name dk -it donkey
 docker image prune
@@ -15,6 +14,10 @@ MAX Steering: 0.0827 (approx)
 Speed can go up to 26 or something
 MAX time by haoru: 26 sec
 
-my_lap_time:
+My_lap_time:
 1st: 36
 2nd: 33.7, 33.44, 34.55, 33.6
+
+ZED SDK:
+docker pull stereolabs/zed:[tag]  # Download image with specified tag
+docker run --gpus all -it --privileged stereolabs/zed:[tag]

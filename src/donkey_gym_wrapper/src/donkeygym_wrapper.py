@@ -37,11 +37,19 @@ class Wrapper:
         Image2 = self.ImgT.convert_cv2_to_ros_msg(self.img)
 
         if self.lidar_pub is not None:
-            self.lidar_pub.publish()
+            self.lidar_pub.publish(self.laser_msg)
         if self.image_pub is not None:
             self.image_pub.publish(Image2)
         if self.twist_pub is not None:
             self.twist_pub.publish()
+        """
+        Subscribe to one of the following topics:
+
+        rgb/image_rect_color: Color rectified image (left sensor by default)
+        rgb_raw/image_raw_color: Color unrectified image (left sensor by default)
+        right/image_rect_color: Right camera rectified image
+        right_raw/image_raw_color: Right camera unrectified image
+        """
 
     def load_param(self, path):
         with open(path, "r") as file:

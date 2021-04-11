@@ -15,14 +15,13 @@ from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
 
 
 class LineFollower(object):
-
     def __init__(self):
         self.bridge_object = CvBridge()
         self.datapath = "/home/michaelji/tritonai/catkin_ws/src/ocvfiltercar/data/records_1/"
 
         # ROS Message publish
-        self.image_sub = rospy.Subscriber("/image", Image, self.camera_callback)
-        self.drive_pub = rospy.Publisher('/drive', AckermannDriveStamped, queue_size=10)
+        self.image_sub = rospy.Subscriber("rgb/image_rect_color", Image, self.camera_callback)
+        self.drive_pub = rospy.Publisher('/vesc/low_level/ackermann_cmd_mux/output', AckermannDriveStamped, queue_size=10)
 
         # HSV filter for isolating all lines
         self.bestfilter = {
@@ -115,6 +114,12 @@ class LineFollower(object):
             cv2.circle(mask, (int(mid_x), int(mid_y)), 5, (255, 0, 0), -1)
             cv2.imshow("wte", mask)
             cv2.waitKey(60)
+    
+    def convert_angular_velocity_to_steering_angle(self, angular_velocity):
+      if angular_velocity == 0:
+        return 0
+      return math.atan(angular_velocity * (0.66/self.a_drive.drive.speed))
+
 
     def camera_callback(self,data):
         # Initialize
@@ -144,20 +149,22 @@ class LineFollower(object):
             error_x = self.last_error
         
         # Calculate speed and steering values
-        self.angular_z = (error_x / 100) * self.ang_mul
-        self.steering = self.steering_pid(self.angular_z)
-        if not self.last_steering or abs(self.last_steering - self.steering) < 0.006:  # steering stability control
-            self.last_steering = self.steering
-        else:
-            self.steering = self.last_steering
-        
+        self.angular_z = (error_x / 100)
+        # self.steering = self.steering_pid(self.angular_z)
+        # if not self.last_steering or abs(self.last_steering - self.steering) < 0.006:  # steering stability control
+        #     self.last_steering = self.steering
+        # else:
+        #     self.steering = self.last_steering
+        self.steering = self.convert_angular_velocity_to_steering_angle(self.angular_z)
+        self.steering = np.clip(self.steering, -0.4, 0.4)
         self.a_drive.drive.steering_angle = -self.steering
+
         self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 17
         if not self.last_speed or abs(self.speed - self.last_speed) < 7:  # speed stability control
             self.last_speed = self.speed
         else:
             self.speed = self.last_speed
-        self.a_drive.drive.speed = self.speed
+        self.a_drive.drive.speed = self.speed // 20
         
         # Publish drive message
         self.drive_pub.publish(self.a_drive)

@@ -1,4 +1,6 @@
 <launch>
+    <include file="$(find racecar)/launch/teleop.launch" />
+
     <node pkg="ocvfiltercar" name="filter_follow" type="filter_follow.py" output="screen">
             <param name="frame_id" value="base_link" />
     </node>

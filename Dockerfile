@@ -1,4 +1,4 @@
-FROM ros:noetic
+FROM haoru233/ros:noetic-l4t-jp4.4
 
 # apt-gets
 RUN apt-get update && apt-get install python3-pip -y && apt-get install git -y
@@ -25,13 +25,17 @@ RUN mkdir -p /catkin_ws/src
 # e.g. COPY src/ackermann_msgs  /catkin_ws/src/ackermann_msgs 
 
 # Copies OpenCV Filtering Catkin PKG
-COPY src/ocvfiltercar /catkin_ws/src/ocvfiltercar/
-COPY src/donkey_gym_wrapper /catkin_ws/src/donkey_gym_wrapper/
+COPY src/ /catkin_ws/src/
 COPY rlaunch.bash / 
 COPY rcar.bash /
 
-SHELL ["/bin/bash", "-c"] 
-RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; cd /catkin_ws; catkin_make'
+RUN cd catkin_ws/; rosdep install --from-paths src --ignore-src -r -y
+
+SHELL ["/bin/bash", "-c"]
+RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; cd /catkin_ws; catkin_make -DCMAKE_BUILD_TYPE=Release'
+
+RUN echo "source /catkin_ws/devel/setup.bash" >> ~/.bashrc
+
 # CMD ["/bin/bash", "-c", ". /catkin_ws/devel/setup.bash"]
 # RUN /bin/bash -c "source /catkin_ws/devel/setup.bash"
 

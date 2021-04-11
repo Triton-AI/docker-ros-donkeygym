@@ -101,9 +101,6 @@ class reactive_follow_gap:
         return best_point
 
 
-
-
-
     def lidar_callback(self, data):
         """ Process each LiDAR scan as per the Follow Gap algorithm 
         & publish an AckermannDriveStamped Message

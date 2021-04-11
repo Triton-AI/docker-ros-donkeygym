@@ -3,6 +3,7 @@ echo "Starting config"
 
 cd /catkin_ws
 source devel/setup.bash
+
 roslaunch ocvfiltercar rcar.launch
 
 echo "Ending config"

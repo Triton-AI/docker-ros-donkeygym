@@ -3,7 +3,7 @@ echo "Starting config"
 
 cd /catkin_ws
 source devel/setup.bash
-roslaunch donkey_gym_wrapper launch.launch
+roslaunch zed_wrapper zed.launch
 
 echo "Ending config"
 
