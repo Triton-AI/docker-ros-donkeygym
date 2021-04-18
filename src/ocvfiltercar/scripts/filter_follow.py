@@ -346,16 +346,17 @@ class reactive_follow_gap:
 
 def main():
     rospy.init_node('line_following_node', anonymous=True)
-    # line_follower_object = LineFollower()
+    line_follower_object = LineFollower()
     # New thread
-    # t = Thread(target = line_follower_object.dummy_publish, daemon=False)
-    # t.start()
+    t = Thread(target = line_follower_object.dummy_publish, daemon=False)
+    t.start()
 
+    """
     rfg = reactive_follow_gap()
     # New thread
     t = Thread(target = rfg.dummy_publish, daemon=False)
     t.start()
-
+    """
     rate = rospy.Rate(60)
     rospy.spin()
 

@@ -99,12 +99,17 @@ class GymInterface(Component, SDClient):
         self.lidar_config = gym_config['lidar']
         self.gym_config.update(connection_config)
 
+
         self.deg_inc = gym_config['lidar']['deg_inc']
         self.max_range = gym_config['lidar']['max_range']
         self.numSweepsLevels = gym_config['lidar']['numSweepsLevels']
+        self.rot_x = gym_config['lidar']['rot_x']
+        self.degAngDelta = gym_config['lidar']['degAngDelta']
         DEFAULT_LIDAR_CONFIG['degPerSweepInc'] = str(self.deg_inc)
         DEFAULT_LIDAR_CONFIG['maxRange'] = str(self.max_range)
         DEFAULT_LIDAR_CONFIG['numSweepsLevels'] = str(self.numSweepsLevels)
+        DEFAULT_LIDAR_CONFIG['rot_x'] = str(self.rot_x)
+        DEFAULT_LIDAR_CONFIG['degAngDelta'] = str(self.degAngDelta)
 
         Component.__init__(self, inputs=['mux/steering', 'mux/throttle', 'mux/breaking', 'usr/reset'], outputs=['cam/img', 'gym/x', 'gym/y', 'gym/z', 'gym/speed', 'gym/cte', 'gym/lidar'], threaded=False)
         SDClient.__init__(self, self.gym_config['host'], self.gym_config['port'], poll_socket_sleep_time=poll_socket_sleep_time)

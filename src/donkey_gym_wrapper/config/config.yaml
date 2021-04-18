@@ -16,6 +16,8 @@ lidar:
   enabled: true
   max_range: 50.0
   numSweepsLevels: 4
+  rot_x: 0
+  degAngDelta: 0
 local_connection:
   artificial_latency: 0
   host: 127.0.0.1
@@ -23,7 +25,7 @@ local_connection:
   scene_name: warren
 remote_connection:
   artificial_latency: 0
-  host: host.docker.internal
+  host: 127.0.0.1
   port: 9091
   scene_name: warren
   

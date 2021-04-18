@@ -40,7 +40,7 @@ class Wrapper:
                                                         self.gym.step(steering, throttle, breaking, reset)
         Image2 = self.ImgT.convert_cv2_to_ros_msg(self.img)
 
-        msg = LaserScan(ranges=np.array(self.laser_msg))
+        # msg = LaserScan(ranges=np.array(self.laser_msg))
 
         # index = [i["rx"] / 2 for i in self.laser_msg]
         # distance = [i["rx"] / 2 for i in self.laser_msg]
@@ -95,8 +95,8 @@ class Wrapper:
 def main():
     rospy.init_node("wrapper_node", anonymous=True)
     w = Wrapper()
-    t = Thread(target = w.print_lidar, daemon=False)
-    t.start()
+    # t = Thread(target = w.print_lidar, daemon=False)
+    # t.start()
 
     rospy.Rate(60)
     rospy.spin()
