@@ -10,7 +10,7 @@ car:
   font_size: 50
   guid: some_random_string
   racer_name: Triton AI
-default_connection: remote
+default_connection: local
 lidar:
   deg_inc: 2
   enabled: true
@@ -20,7 +20,7 @@ lidar:
   degAngDelta: 0
 local_connection:
   artificial_latency: 0
-  host: 127.0.0.1
+  host: host.docker.internal
   port: 9091
   scene_name: warren
 remote_connection:

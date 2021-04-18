@@ -22,6 +22,7 @@ class LineFollower(object):
 
         # ROS Message publish
         self.image_sub = rospy.Subscriber("/image", Image, self.camera_callback)
+        self.lidar_sub = rospy.Subscriber('/lidar', LaserScan, self.lidar_callback)
         self.drive_pub = rospy.Publisher('/drive', AckermannDriveStamped, queue_size=10)
 
         # HSV filter for isolating all lines
@@ -68,6 +69,9 @@ class LineFollower(object):
 
         self.last_spot, self.last_border_x = None, None
 
+    def lidar_callback(self, lidar_msg):
+        self.ranges = lidar_msg.ranges
+
     def dummy_publish(self):
         # Before start
         print("\n")
@@ -84,8 +88,14 @@ class LineFollower(object):
         while 1:
             ##### Yellow line
             rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}")
-            cv2.circle(self.bgr,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
-            cv2.imshow('ylo', self.bgr)
+            # # rospy.loginfo(f"{self.ranges}")
+            # # cv2.circle(self.bgr,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
+            # rgb = cv2.cvtColor(self.bgr, cv2.COLOR_BGR2RGB)
+
+            # mask = cv2.inRange(self.bgr, self.center_lower, self.center_higher)
+            # result =cv2.bitwise_and(self.bgr, self.bgr, mask=mask)
+            # cv2.circle(result,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
+            # cv2.imshow('ylo', rgb)
 
             ##### White line testing
             mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
@@ -127,6 +137,7 @@ class LineFollower(object):
         height, width, channels = cv_image.shape
         self.bgr = cv_image[int(height / 3):int(height * (3 / 4)), 0:width]
 
+        """
         # Create filter mask
         mask = cv2.inRange(self.bgr, self.center_lower, self.center_higher)
 
@@ -136,8 +147,31 @@ class LineFollower(object):
             self.cx, self.cy = m['m10']/m['m00'], m['m01']/m['m00']
         except ZeroDivisionError:
             self.cy, self.cx = height / 2, width / 2
+        """
+        
+        mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
+        canny = cv2.Canny(mask, 100, 100)
 
-        error_x = self.cx - width / 2
+        mid_y = mask.shape[0] // 2
+        spot = np.where(canny[mid_y, :] == 255)[0]
+        if len(spot) < 1:
+            spot = self.last_spot
+        self.last_spot = spot
+
+        if np.ptp(spot) < 50:  # One edge is invisible (extreme cases)
+            if self.last_border_x > mask.shape[1] // 2:
+                mid_x = (mask.shape[1] + (np.max(spot) + np.min(spot)) // 2) // 2  # Right extreme
+            else:
+                mid_x = (np.max(spot) + np.min(spot)) // 4  # Left extreme
+            # rospy.loginfo(f"{mid_x}, {mask.shape[1]}, {spot}")
+        else:
+            mid_x = (np.max(spot) + np.min(spot)) // 2
+            if not self.last_border_x or abs(self.last_border_x - mid_x) < 25:
+                self.last_border_x = mid_x
+            else:
+                mid_x = self.last_border_x
+
+        error_x = mid_x - width / 2
         if not self.last_error or abs(error_x - self.last_error) < 80:  # error stability control
             self.last_error = error_x
         else:
