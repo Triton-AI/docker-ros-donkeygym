@@ -25,8 +25,10 @@ class Wrapper:
         self.twist_pub = rospy.Publisher('/twist', Twist, queue_size=10)
         self.ImgT = ImageTools()
         self.last_speed = 0
+        self.called = False
 
     def drive_callback(self, drive):
+        self.called = True
         breaking, reset = 0, 0
         self.max_steering = 1
         steering = (drive.drive.steering_angle / self.max_steering) * 180 / math.pi
@@ -54,11 +56,20 @@ class Wrapper:
     def load_param(self, path):
         with open(path, "r") as file:
             return yaml.load(file, Loader=yaml.FullLoader)
+    
+    def print_lidar(self):
+        while not self.called:
+            pass
+        while 1:
+            print(self.laser_msg, type(self.laser_msg))
 
 
 def main():
     rospy.init_node("wrapper_node", anonymous=True)
     w = Wrapper()
+    t = Thread(target = w.print_lidar, daemon=False)
+    t.start()
+
     rospy.Rate(60)
     rospy.spin()
 
