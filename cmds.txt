@@ -19,5 +19,5 @@ My_lap_time:
 2nd: 33.7, 33.44, 34.55, 33.6
 
 ZED SDK:
-docker pull stereolabs/zed:[tag]  # Download image with specified tag
-docker run --gpus all -it --privileged stereolabs/zed:[tag]
+docker pull stereolabs/zed:3.0-runtime-cuda10.2-ubuntu18.04  # Download image with specified tag
+docker run --gpus all -it --privileged stereolabs/zed:3.0-runtime-cuda10.2-ubuntu18.04
