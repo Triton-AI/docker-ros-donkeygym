@@ -14,6 +14,7 @@ RUN git clone https://github.com/tawnkramer/gym-donkeycar
 RUN python3 -m pip install -e gym-donkeycar
 RUN python3 -m pip install opencv-python
 RUN python3 -m pip install simple-pid
+RUN python3 -m pip install matplotlib
 
 # ROS setups
 RUN apt-get install ros-noetic-ackermann-msgs

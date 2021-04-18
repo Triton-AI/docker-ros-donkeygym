@@ -173,7 +173,7 @@ class reactive_follow_gap:
             print("\n")
             self.print_ranges(proc_ranges)
             ct = 0
-            
+
 
 
     def convert_data(self, throttle, steering):
@@ -203,6 +203,7 @@ class reactive_follow_gap:
 def main(args):
     rospy.init_node("Wrapper_node", anonymous=True)
     rfgs = reactive_follow_gap()
+    
     rospy.sleep(0.05)
     rospy.spin()
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from numpy.lib import arraysetops
 import rospy
 import cv2
 import math
@@ -7,7 +8,7 @@ import numpy as np
 from os import path
 from simple_pid import PID
 from threading import Thread
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, LaserScan
 from move_robot import MoveRosBots
 from geometry_msgs.msg import Twist
 from cv_bridge import CvBridge, CvBridgeError
@@ -15,7 +16,6 @@ from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
 
 
 class LineFollower(object):
-
     def __init__(self):
         self.bridge_object = CvBridge()
         self.datapath = "/home/michaelji/tritonai/catkin_ws/src/ocvfiltercar/data/records_1/"
@@ -198,14 +198,162 @@ class LineFollower(object):
         
     def clean_up(self):
         cv2.destroyAllWindows()
+
+class reactive_follow_gap:
+    def __init__(self):
+        self.lidar_sub = rospy.Subscriber('/lidar', LaserScan, self.lidar_callback)
+        self.drive_pub = rospy.Publisher('/drive', AckermannDriveStamped, queue_size=10)
+        self.stored_ranges = []
+
+        self.a_drive = AckermannDriveStamped()
+        self.a_drive.drive.steering_angle = 0.0
+        self.a_drive.drive.speed = 0.0
+        self.running = False
+
+    def dummy_publish(self):
+        # Before start
+        print("Dummy")
+        while not self.running:
+            print("Start to publish drive msg, wait for wrapper node to recieve!", end="\r")
+            self.drive_pub.publish(self.a_drive)
+        
+    def preprocess_lidar(self, ranges):
+        """ Preprocess the LiDAR scan array. Expert implementation includes:
+            1.Setting each value to the mean over some window
+            2.Rejecting high values (eg. > 3m)
+        """
+        #temp_ranges = list(ranges)
+        #quarter_len = len(temp_ranges) / 4
+        #proc_ranges = temp_ranges[quarter_len:(len(temp_ranges) - quarter_len)]
+        proc_ranges = list(ranges)
+        max_accepted_distance = 15
+        
+        for i in range(len(proc_ranges)):
+            if (math.isnan(ranges[i])):
+                proc_ranges[i] = 0
+            elif ((ranges[i] > max_accepted_distance) or math.isinf(ranges[i])):
+                proc_ranges[i] = max_accepted_distance
+            else:
+                proc_ranges[i] = ranges[i]
+        
+        return proc_ranges
+
+    def find_max_gap(self, free_space_ranges):
+        """ Return the start index & end index of the max gap in free_space_ranges
+        """
+        
+        max_begin = 0
+        current_gap = 0
+        current_begin = 0
+        current_index = 0
+        max_gap = 0
+
+        while(current_index < len(free_space_ranges)):
+            
+            current_gap = 0
+            current_begin = current_index
+
+            while ((current_index < len(free_space_ranges)) 
+                and (free_space_ranges[current_index] > 0.5)):
+                current_gap+=1
+                current_index+=1
+            
+            if (current_gap > max_gap):
+                max_gap = current_gap
+                max_begin = current_begin
+                current_gap = 0
+
+            current_index+=1
+
+        if (current_gap > max_gap):
+            max_gap = current_gap
+            max_begin = current_begin
+
+        return max_begin, max_begin + max_gap - 1 
+    
+    def find_best_point(self, start_i, end_i, ranges):
+        """Start_i & end_i are start and end indices of max-gap range, respectively
+        Return index of best point in ranges
+	Naive: Choose the furthest point within ranges and go there
+        """
+
+        avg = np.average(ranges[start_i:end_i], weights=ranges[start_i:end_i])
+        
+        best_point = start_i + np.argmin(np.abs(np.array(ranges[start_i:end_i]) - avg))
+
+        return best_point
+
+    def lidar_callback(self, data):
+        """ Process each LiDAR scan as per the Follow Gap algorithm 
+        & publish an AckermannDriveStamped Message
+        """
+        self.runing = True
+        array = np.zeros((1, 1080))
+        for i in data.ranges:
+            array[int(i["rx"]) * 3] = i["d"]
+
+        ranges = array
+        proc_ranges = self.preprocess_lidar(ranges)
+        
+        #Find closest point to LiDAR
+        closest_point = np.argmin(proc_ranges)
+
+
+        #Eliminate all points inside 'bubble' (set them to zero) 
+        ratio_of_bubble_to_ranges = 15
+        bubble_radius = (len(proc_ranges) / ratio_of_bubble_to_ranges) / 2
+        for i in range(int(max(0, closest_point - bubble_radius)), 
+	        int(min(closest_point + bubble_radius, len(proc_ranges) - 1))):
+            proc_ranges[i] = 0
+
+        #Find max length gap 
+        start_point, end_point = self.find_max_gap(proc_ranges)
+
+        #Find the best point in the gap 
+        best_point = self.find_best_point(start_point, end_point, proc_ranges)
+
+        #Steering angle
+        best_steering_angle = 0
+        angle_increment = 0.002
+        if (best_point < len(proc_ranges) / 2):
+            distance = (len(proc_ranges) / 2) - best_point
+            best_steering_angle = - distance * angle_increment
+        else:
+            distance = (best_point - (len(proc_ranges) / 2))
+            best_steering_angle = distance * angle_increment
+
+        #Speed Calculation
+
+
+        #Publish Drive message
+        ack_msg = AckermannDriveStamped()
+        ack_msg.header.stamp = rospy.Time.now()
+        ack_msg.header.frame_id = "laser"
+        ack_msg.drive.steering_angle = best_steering_angle
+        
+        multiplier = 3.5
+        multiplier2 = 0.3
+        pred_speed = abs((1.8 * multiplier) - ((6 * abs(best_steering_angle)) ** 2))
+        delta = abs(pred_speed - ack_msg.drive.speed)
+        speed1 = multiplier * math.atan(delta * multiplier2)
+        ack_msg.drive.speed = speed1
+        
+
+        self.convert_data(ack_msg.drive.speed, ack_msg.drive.steering_angle)
+        # ack_msg.drive.acceleration = 2
+        self.drive_pub.publish(ack_msg)
         
 
 def main():
     rospy.init_node('line_following_node', anonymous=True)
-    line_follower_object = LineFollower()
-
+    # line_follower_object = LineFollower()
     # New thread
-    t = Thread(target = line_follower_object.dummy_publish, daemon=False)
+    # t = Thread(target = line_follower_object.dummy_publish, daemon=False)
+    # t.start()
+
+    rfg = reactive_follow_gap()
+    # New thread
+    t = Thread(target = rfg.dummy_publish, daemon=False)
     t.start()
 
     rate = rospy.Rate(60)

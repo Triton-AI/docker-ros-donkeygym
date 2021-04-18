@@ -13,8 +13,9 @@ car:
 default_connection: remote
 lidar:
   deg_inc: 2
-  enabled: false
+  enabled: true
   max_range: 50.0
+  numSweepsLevels: 4
 local_connection:
   artificial_latency: 0
   host: 127.0.0.1
