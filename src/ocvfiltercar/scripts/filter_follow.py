@@ -87,7 +87,7 @@ class LineFollower(object):
         cv2.moveWindow("wte", 120,870)
         while 1:
             ##### Yellow line
-            rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}")
+            # rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}")
 
             # rospy.loginfo(f"{self.ranges}")
             # # cv2.circle(self.bgr,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
@@ -99,8 +99,10 @@ class LineFollower(object):
             # cv2.imshow('ylo', rgb)
 
             ##### White line testing
-            mask = cv2.GaussianBlur(cv2.inRange(self.bgr, self.border_lower, self.border_higher), (3, 3), cv2.BORDER_DEFAULT)
-            canny = cv2.Canny(mask, 100, 100)  # Blur
+            mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
+            canny = cv2.GaussianBlur(cv2.Canny(mask, 100, 70), (3, 3), cv2.BORDER_DEFAULT)  # Blur
+            lines = cv2.HoughLinesP(canny, 1, np.pi/180, threshold=40, minLineLength=5, maxLineGap=600)
+            
 
             mid_y = mask.shape[0] // 2
             spot = np.where(canny[mid_y, :] == 255)[0]
@@ -123,9 +125,33 @@ class LineFollower(object):
                     # rospy.loginfo(mid_x)
                 # rospy.loginfo(f"{spot}, {(np.max(spot) + np.min(spot)) // 2}")
 
+
             cv2.circle(canny, (int(mid_x), int(mid_y)), 5, (255, 0, 0), -1)
+
+
+            y_left_max = []
+            y_right_max = []
+            if lines is not None:
+                for line in lines:
+                    if line[0][0] < mask.shape[1] / 2 and line[0][1] > 25:  # left line
+                        x1, y1, x2, y2 = line[0]
+                        if len(y_left_max) and abs(y1 - y2) > abs(y_left_max[1] - y_left_max[3]):
+                            y_left_max = line[0]
+                        else:
+                            y_left_max = line[0]
+                    if line[0][0] > mask.shape[1] / 2 and line[0][1] < 25:  # right line
+                        x1, y1, x2, y2 = line[0]
+                        if len(y_right_max) and abs(y1 - y2) > abs(y_right_max[1] - y_right_max[3]):
+                            y_right_max = line[0]
+                        else:
+                            y_right_max = line[0]
+            if len(y_left_max):
+                cv2.line(canny, (y_left_max[0], y_left_max[1]), (y_left_max[2], y_left_max[3]), (255, 0, 0), 3)
+            if len(y_right_max):
+                cv2.line(canny, (y_right_max[0], y_right_max[1]), (y_right_max[2], y_right_max[3]), (255, 0, 0), 3)
+            rospy.loginfo(f"{y_left_max}\n{y_right_max}")
             cv2.imshow("wte", canny)
-            cv2.waitKey(60)
+            cv2.waitKey(100)
 
     def camera_callback(self,data):
         # Initialize
@@ -198,39 +224,6 @@ class LineFollower(object):
         # Publish drive message
         self.drive_pub.publish(self.a_drive)
 
-        # SIDES
-        # Use gradients to determine steering
-        # Load filter values
-        """
-        lowR = rgbsidefilter.get("lowR")
-        highR = rgbsidefilter.get("highR")
-        lowG = rgbsidefilter.get("lowG")
-        highG = rgbsidefilter.get("highG")
-        lowB = rgbsidefilter.get("lowB")
-        highB = rgbsidefilter.get("highB")
-
-        border_lower = np.array([lowR, lowG, lowB])
-        border_higher = np.array([highR, highG, highB])
-        border_mask = cv2.inRange(rgb, border_lower, border_higher)
-        grad_x = np.diff(border_mask, n = 1, axis = 0)
-        all_indices = [[]]
-        print(grad_x)
-        for row in grad_x:
-            indices = []
-            for index in range(len(row)):
-                if row[index] != 0:
-                    print(str(index) + " ", end='')
-                    np.append(indices, index)
-
-            if len(indices) == 2:
-                np.append(all_indices, indices)
-
-        print(all_indices)
-        print(np.mean(np.diff(all_indices, axis = 0), axis = 0))
-
-        cv2.imshow('gradx', grad_x)
-        cv2.moveWindow('gradx', 400, 600)
-        """
         
     def clean_up(self):
         cv2.destroyAllWindows()
