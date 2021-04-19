@@ -13,6 +13,7 @@ RUN apt-get install -y ros-$(rosversion -d)-cv-bridge
 RUN python3 -m pip install opencv-python
 RUN python3 -m pip install simple-pid
 RUN python3 -m pip install matplotlib
+RUN python3 -m pip install -U scikit-learn
 
 # ROS setups
 RUN apt-get install ros-noetic-ackermann-msgs

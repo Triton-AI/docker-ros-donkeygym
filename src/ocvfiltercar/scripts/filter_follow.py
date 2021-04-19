@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-from numpy.lib import arraysetops
-import rospy
 import cv2
 import math
 import time
+import rospy
 import numpy as np
 from os import path
 from simple_pid import PID
 from threading import Thread
-from sensor_msgs.msg import Image, LaserScan
 from move_robot import MoveRosBots
 from geometry_msgs.msg import Twist
+from sklearn.mixture import GaussianMixture
+from sensor_msgs.msg import Image, LaserScan
 from cv_bridge import CvBridge, CvBridgeError
 from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
 
@@ -18,7 +18,7 @@ from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
 class LineFollower(object):
     def __init__(self):
         self.bridge_object = CvBridge()
-        self.datapath = "/home/michaelji/tritonai/catkin_ws/src/ocvfiltercar/data/records_1/"
+        # self.datapath = "/home/michaelji/tritonai/catkin_ws/src/ocvfiltercar/data/records_1/"
 
         # ROS Message publish
         self.image_sub = rospy.Subscriber("/image", Image, self.camera_callback)
@@ -59,7 +59,7 @@ class LineFollower(object):
 
         # Misc
         self.running, self.isStart, self.a_drive = False, False, None
-        self.angular_z, self.speed, self.steering, self.ang_mul = 0, 0, 0, 0.28
+        self.angular_z, self.speed, self.steering, self.ang_mul = 0, 0, 0, 0.36
         self.a_drive = AckermannDriveStamped()
         self.a_drive.drive.steering_angle = 0.0
         self.a_drive.drive.speed = 0.0
@@ -88,7 +88,8 @@ class LineFollower(object):
         while 1:
             ##### Yellow line
             rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}")
-            # # rospy.loginfo(f"{self.ranges}")
+
+            # rospy.loginfo(f"{self.ranges}")
             # # cv2.circle(self.bgr,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
             # rgb = cv2.cvtColor(self.bgr, cv2.COLOR_BGR2RGB)
 
@@ -98,8 +99,8 @@ class LineFollower(object):
             # cv2.imshow('ylo', rgb)
 
             ##### White line testing
-            mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
-            canny = cv2.Canny(mask, 100, 100)
+            mask = cv2.GaussianBlur(cv2.inRange(self.bgr, self.border_lower, self.border_higher), (3, 3), cv2.BORDER_DEFAULT)
+            canny = cv2.Canny(mask, 100, 100)  # Blur
 
             mid_y = mask.shape[0] // 2
             spot = np.where(canny[mid_y, :] == 255)[0]
@@ -122,8 +123,8 @@ class LineFollower(object):
                     # rospy.loginfo(mid_x)
                 # rospy.loginfo(f"{spot}, {(np.max(spot) + np.min(spot)) // 2}")
 
-            cv2.circle(mask, (int(mid_x), int(mid_y)), 5, (255, 0, 0), -1)
-            cv2.imshow("wte", mask)
+            cv2.circle(canny, (int(mid_x), int(mid_y)), 5, (255, 0, 0), -1)
+            cv2.imshow("wte", canny)
             cv2.waitKey(60)
 
     def camera_callback(self,data):
@@ -149,6 +150,7 @@ class LineFollower(object):
             self.cy, self.cx = height / 2, width / 2
         """
         
+        # Using white line
         mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
         canny = cv2.Canny(mask, 100, 100)
 

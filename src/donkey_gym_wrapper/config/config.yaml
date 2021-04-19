@@ -1,13 +1,13 @@
 car:
   bio: Something
   body_rgb:
-  - 24
-  - 43
-  - 73
+  - 0
+  - 0
+  - 0
   body_style: car01
   car_name: TritonRacer
   country: US
-  font_size: 50
+  font_size: 30
   guid: some_random_string
   racer_name: Triton AI
 default_connection: local
