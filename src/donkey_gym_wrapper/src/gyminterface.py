@@ -152,7 +152,7 @@ class GymInterface(Component, SDClient):
             self.send_config()
 
         elif json_packet['msg_type'] == "car_loaded":
-            print('Car loaded.')
+            # print('Car loaded.')
             self.car_loaded = True
         
         elif json_packet['msg_type'] == "telemetry":
@@ -174,8 +174,8 @@ class GymInterface(Component, SDClient):
         '''
         send three config messages to setup car, racer, and camera
         '''
-        print('Sending configs...')
-        print('Sending racer info')
+        # print('Sending configs...')
+        # print('Sending racer info')
         # Racer info
         msg = {'msg_type': 'racer_info',
             'racer_name': self.gym_config['racer_name'],
@@ -185,9 +185,9 @@ class GymInterface(Component, SDClient):
             'guid': self.gym_config['guid'] }
         self.send_now(json.dumps(msg))
 
-        time.sleep(1.0)
+        time.sleep(0.5)
 
-        print('Sending car config')
+        # print('Sending car config')
         # Car config
         msg = { "msg_type" : "car_config", 
         "body_style" : self.gym_config['body_style'], 
@@ -199,7 +199,7 @@ class GymInterface(Component, SDClient):
         self.send_now(json.dumps(msg))
 
         #this sleep gives the car time to spawn. Once it's spawned, it's ready for the camera config.
-        time.sleep(1.0)
+        time.sleep(0.5)
         '''
         # Camera config     
         msg = { "msg_type" : "cam_config", 
@@ -217,16 +217,14 @@ class GymInterface(Component, SDClient):
         }
         self.send_now(json.dumps(msg))
         '''
-        print (f"Gym Interface: Camera resolution ({self.gym_config['img_w']}, {self.gym_config['img_h']}).")
+        # print (f"Gym Interface: Camera resolution ({self.gym_config['img_w']}, {self.gym_config['img_h']}).")
 
         if self.lidar_config['enabled']:
-            print('Sending LiDAR config')
+            # print('Sending LiDAR config')
             msg = {'msg_type':"lidar_config"}
             msg.update(DEFAULT_LIDAR_CONFIG)
             self.send_now(json.dumps(msg))
 
-
-        
 
     def send_controls(self, steering, throttle, breaking):
         msg = { "msg_type" : "control",
@@ -239,7 +237,7 @@ class GymInterface(Component, SDClient):
         # time.sleep(self.poll_socket_sleep_sec)
 
     def load_scene(self, scene):
-        print(f'Loading scene: {scene}')
+        # print(f'Loading scene: {scene}')
         msg = {"msg_type" : "load_scene", "scene_name" : scene}
         self.send_now(json.dumps(msg))
 

@@ -9,6 +9,7 @@ from simple_pid import PID
 from threading import Thread
 from move_robot import MoveRosBots
 from geometry_msgs.msg import Twist
+from timeit import default_timer as timer
 from sklearn.mixture import GaussianMixture
 from sensor_msgs.msg import Image, LaserScan
 from cv_bridge import CvBridge, CvBridgeError
@@ -63,8 +64,9 @@ class LineFollower(object):
         self.a_drive = AckermannDriveStamped()
         self.a_drive.drive.steering_angle = 0.0
         self.a_drive.drive.speed = 0.0
-        self.throttle_pid = PID(0.25, 0.0, 0.005)
-        self.steering_pid = PID(0.1, 0.0005, 0.35)
+        self.throttle_pid = PID(0.1, 0.0, 0.005)
+        self.steering_pid = PID(0.1, 0.001, 0.2)
+        self.steering_pid.auto_mode = True
         self.last_error, self.last_steering, self.last_speed = None, None, None
 
         self.last_spot, self.last_border_x = None, None
@@ -81,14 +83,12 @@ class LineFollower(object):
 
         # After start
         print("\n")
-        cv2.namedWindow("ylo")
-        cv2.moveWindow("ylo", 120,700)
+        # cv2.namedWindow("ylo")
+        # cv2.moveWindow("ylo", 120,700)
         cv2.namedWindow("wte")
         cv2.moveWindow("wte", 120,870)
         while 1:
             ##### Yellow line
-            # rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}")
-
             # rospy.loginfo(f"{self.ranges}")
             # # cv2.circle(self.bgr,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
             # rgb = cv2.cvtColor(self.bgr, cv2.COLOR_BGR2RGB)
@@ -98,6 +98,7 @@ class LineFollower(object):
             # cv2.circle(result,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
             # cv2.imshow('ylo', rgb)
 
+            
             ##### White line testing
             mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
             canny = cv2.GaussianBlur(cv2.Canny(mask, 100, 70), (3, 3), cv2.BORDER_DEFAULT)  # Blur
@@ -147,9 +148,18 @@ class LineFollower(object):
                             y_right_max = line[0]
 
                     cv2.line(canny, (line[0][0], line[0][1]), (line[0][2], line[0][3]), (255, 0, 0), 3)
+
+            if len(y_left_max):
+                cv2.line(canny, (y_left_max[0], y_left_max[1]), (y_left_max[2], y_left_max[3]), (255, 0, 0), 3)
+            if len(y_right_max):
+                cv2.line(canny, (y_right_max[0], y_right_max[1]), (y_right_max[2], y_right_max[3]), (255, 0, 0), 3)
+            
+            rospy.loginfo(f"{y_left_max}\n{y_right_max}")
+
             """
+            s = timer()
             canny = cv2.GaussianBlur(cv2.Canny(mask, 100, 70), (3, 3), cv2.BORDER_DEFAULT)  # Blur
-            lines = cv2.HoughLinesP(canny, 1, np.pi/180, threshold=40, minLineLength=5, maxLineGap=600)
+            lines = cv2.HoughLinesP(canny, 1, np.pi/180, threshold=50, minLineLength=5, maxLineGap=550)
 
             # Set initial maximum and minimum slopes and lines
             max_slope = 0
@@ -172,17 +182,14 @@ class LineFollower(object):
             # Draw lines
             if max_slope_line is None:
                 max_slope_line = np.array([[0, mask.shape[0], 0, 0]])
-
-            #cv2.line(canny, (max_slope_line[0][0], max_slope_line[0][1]),
-            #        (max_slope_line[0][2], max_slope_line[0][3]), (255, 0, 0), 3)
-
             if min_slope_line is None:
                 min_slope_line = np.array([[mask.shape[1], 0, mask.shape[1], mask.shape[0]]])
-
+            #cv2.line(canny, (max_slope_line[0][0], max_slope_line[0][1]),
+            #        (max_slope_line[0][2], max_slope_line[0][3]), (255, 0, 0), 3)
             #cv2.line(canny, (min_slope_line[0][0], min_slope_line[0][1]),
             #    (min_slope_line[0][2], min_slope_line[0][3]), (255, 0, 0), 3)
-
             #rospy.loginfo(f"{max_slope_line}\n{min_slope_line}")
+
 
             # Contour and draw poly
             contours = np.array([[max_slope_line[0][0], max_slope_line[0][1]],
@@ -198,19 +205,11 @@ class LineFollower(object):
             cv2.fillPoly(canny, pts = [contours], color = (255, 255, 255))
             cv2.circle(canny, centroid, 5, (0, 255, 0), -1)
 
-            rospy.loginfo(f"{centroid[0] - mask.shape[1] /2}")
-
-
-            """
-            if len(y_left_max):
-                cv2.line(canny, (y_left_max[0], y_left_max[1]), (y_left_max[2], y_left_max[3]), (255, 0, 0), 3)
-            if len(y_right_max):
-                cv2.line(canny, (y_right_max[0], y_right_max[1]), (y_right_max[2], y_right_max[3]), (255, 0, 0), 3)
+            # rospy.loginfo(f"{centroid[0] - mask.shape[1] /2}")
+            rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}\nTime: {(timer() - s):.4f}")
             
-            rospy.loginfo(f"{y_left_max}\n{y_right_max}")
-            """
             cv2.imshow("wte", canny)
-            cv2.waitKey(400)
+            cv2.waitKey(100)
 
     def camera_callback(self,data):
         # Initialize
@@ -221,8 +220,9 @@ class LineFollower(object):
 
         # Crop image
         height, width, channels = cv_image.shape
-        self.bgr = cv_image[int(height * (2/5)):int(height), 0:width]
+        self.bgr = cv_image[int(height * (2 / 5)):int(height * (3 / 4)), 0:width]
 
+        # Using yellow line
         """
         # Create filter mask
         mask = cv2.inRange(self.bgr, self.center_lower, self.center_higher)
@@ -268,8 +268,35 @@ class LineFollower(object):
         else:
             error_x = self.last_error
         """
+        
+        error_x, ang = self.extract_white_line()
+        if ang:
+            self.steering = ang
+            self.a_drive.drive.steering_angle = self.steering
+        else:
+        # Calculate speed and steering values
+            self.angular_z = (error_x / 100) * self.ang_mul
+            self.steering = self.steering_pid(self.angular_z)
+            if not self.last_steering or abs(self.last_steering - self.steering) < 0.02:  # steering stability control
+                self.last_steering = self.steering
+            else:
+                self.steering = self.last_steering
+            self.a_drive.drive.steering_angle = -self.steering
+
+
+        self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 17
+        if not self.last_speed or abs(self.speed - self.last_speed) < 8:  # speed stability control
+            self.last_speed = self.speed
+        else:
+            self.speed = self.last_speed
+        self.a_drive.drive.speed = self.speed
+        
+        # Publish drive message
+        self.drive_pub.publish(self.a_drive)
+
+    def extract_white_line(self):
         mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
-        canny = cv2.GaussianBlur(cv2.Canny(mask, 100, 70), (3, 3), cv2.BORDER_DEFAULT)  # Blur
+        canny = cv2.GaussianBlur(cv2.Canny(mask, 100, 70), (3, 3), cv2.BORDER_DEFAULT)  # canny + Blur
         lines = cv2.HoughLinesP(canny, 1, np.pi/180, threshold=40, minLineLength=5, maxLineGap=600)
 
         # Set initial maximum and minimum slopes and lines
@@ -282,7 +309,7 @@ class LineFollower(object):
         if lines is not None:
             for line in lines:
                 x1, y1, x2, y2 = line[0]
-                slope = -(y2 - y1) / (x2 - x1)
+                slope = - (y2 - y1) / (x2 - x1)
                 if slope > max_slope:
                     max_slope = slope
                     max_slope_line = line
@@ -290,18 +317,14 @@ class LineFollower(object):
                     min_slope = slope
                     min_slope_line = line
 
+        steering_ang = None
         # Draw lines
         if max_slope_line is None:
             max_slope_line = np.array([[0, mask.shape[0], 0, 0]])
-
-        #cv2.line(canny, (max_slope_line[0][0], max_slope_line[0][1]),
-        #        (max_slope_line[0][2], max_slope_line[0][3]), (255, 0, 0), 3)
-
+            steering_ang = -0.5
         if min_slope_line is None:
             min_slope_line = np.array([[mask.shape[1], 0, mask.shape[1], mask.shape[0]]])
-
-        #cv2.line(canny, (min_slope_line[0][0], min_slope_line[0][1]),
-        #    (min_slope_line[0][2], min_slope_line[0][3]), (255, 0, 0), 3)
+            steering_ang = 0.5
 
         # Contour and draw poly
         contours = np.array([[max_slope_line[0][0], max_slope_line[0][1]],
@@ -310,34 +333,48 @@ class LineFollower(object):
             [min_slope_line[0][2], min_slope_line[0][3]]])
 
         centroid = ((max_slope_line[0][0] + max_slope_line[0][2] 
-            + min_slope_line[0][0] + min_slope_line[0][2]) // 4,
+            + min_slope_line[0][0] + min_slope_line[0][2]) / 4,
             (max_slope_line[0][1] + max_slope_line[0][3] 
-            + min_slope_line[0][1] + min_slope_line[0][3]) // 4)
+            + min_slope_line[0][1] + min_slope_line[0][3]) / 4)
 
-        error_x = centroid[0] - mask.shape[1] / 2
+        return centroid[0] - mask.shape[1] / 2, steering_ang
 
-        # Calculate speed and steering values
-        self.angular_z = (error_x / 100) * self.ang_mul
-        self.steering = self.steering_pid(self.angular_z)
-        if not self.last_steering or abs(self.last_steering - self.steering) < 0.006:  # steering stability control
-            self.last_steering = self.steering
-        else:
-            self.steering = self.last_steering
-        
-        self.a_drive.drive.steering_angle = -self.steering
-        self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 17
-        if not self.last_speed or abs(self.speed - self.last_speed) < 7:  # speed stability control
-            self.last_speed = self.speed
-        else:
-            self.speed = self.last_speed
-        self.a_drive.drive.speed = self.speed
-        
-        # Publish drive message
-        self.drive_pub.publish(self.a_drive)
-
-        
     def clean_up(self):
         cv2.destroyAllWindows()
+        
+
+
+def main():
+    rospy.init_node('line_following_node', anonymous=True)
+    line_follower_object = LineFollower()
+    # New thread
+    t = Thread(target = line_follower_object.dummy_publish, daemon=False)
+    t.start()
+
+    """
+    rfg = reactive_follow_gap()
+    # New thread
+    t = Thread(target = rfg.dummy_publish, daemon=False)
+    t.start()
+    """
+    rate = rospy.Rate(100)
+    rospy.spin()
+
+    def shutdownhook():
+        # works better than the rospy.is_shut_down()
+        line_follower_object.clean_up()
+        rospy.loginfo("shutdown time!")
+
+    rospy.on_shutdown(shutdownhook)
+    
+    
+if __name__ == '__main__':
+    main()
+
+
+################################################################################################
+################################################################################################
+################################################################################################
 
 class reactive_follow_gap:
     def __init__(self):
@@ -482,31 +519,3 @@ class reactive_follow_gap:
         self.convert_data(ack_msg.drive.speed, ack_msg.drive.steering_angle)
         # ack_msg.drive.acceleration = 2
         self.drive_pub.publish(ack_msg)
-        
-
-def main():
-    rospy.init_node('line_following_node', anonymous=True)
-    line_follower_object = LineFollower()
-    # New thread
-    t = Thread(target = line_follower_object.dummy_publish, daemon=False)
-    t.start()
-
-    """
-    rfg = reactive_follow_gap()
-    # New thread
-    t = Thread(target = rfg.dummy_publish, daemon=False)
-    t.start()
-    """
-    rate = rospy.Rate(60)
-    rospy.spin()
-
-    def shutdownhook():
-        # works better than the rospy.is_shut_down()
-        line_follower_object.clean_up()
-        rospy.loginfo("shutdown time!")
-
-    rospy.on_shutdown(shutdownhook)
-    
-    
-if __name__ == '__main__':
-    main()

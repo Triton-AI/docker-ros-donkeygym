@@ -10,7 +10,7 @@ car:
   font_size: 30
   guid: some_random_string
   racer_name: Triton AI
-default_connection: remote
+default_connection: local
 lidar:
   deg_inc: 2
   enabled: true

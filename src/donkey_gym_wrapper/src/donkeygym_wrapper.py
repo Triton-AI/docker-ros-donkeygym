@@ -80,8 +80,9 @@ def main():
     # t = Thread(target = w.print_lidar, daemon=False)
     # t.start()
 
-    rospy.Rate(60)
+    rospy.Rate(100)
     rospy.spin()
+    rospy.on_shutdown(lambda: print("Shutting down lolololol....."))
 
 
 if __name__ == '__main__':
