@@ -116,6 +116,7 @@ class GymInterface(Component, SDClient):
         self.load_scene(self.gym_config['scene_name'])
         self.send_config()
         self.last_image = None
+        self.last_image_b = None
         self.car_loaded = False
         self.latency = self.gym_config['artificial_latency']
 
@@ -136,7 +137,7 @@ class GymInterface(Component, SDClient):
         if reset:
             self.reset_car()
 
-        return self.last_image, self.pos_x, self.pos_y, self.pos_z, self.speed, self.cte, self.lidar
+        return self.last_image, self.last_image_b, self.pos_x, self.pos_y, self.pos_z, self.speed, self.cte, self.lidar
 
     def onStart(self):
         print(f'CAUTION: Confirm your artificial latency setting: {self.latency}ms.')
@@ -160,7 +161,12 @@ class GymInterface(Component, SDClient):
             imgString = json_packet["image"]
             image = Image.open(BytesIO(base64.b64decode(imgString)))
             self.last_image = np.asarray(image, dtype=np.uint8)
-            # self.last_image = json_packet
+            try:
+                imgString_b = json_packet["imageb"]
+                image_b = Image.open(BytesIO(base64.b64decode(imgString_b)))
+                self.last_image_b = np.asarray(image_b, dtype=np.uint8)
+            except:
+                pass
             self.pos_x = float(json_packet['pos_x'])
             self.pos_y = float(json_packet['pos_y'])
             self.pos_z = float(json_packet['pos_z'])
@@ -219,6 +225,24 @@ class GymInterface(Component, SDClient):
         }
         self.send_now(json.dumps(msg))
        '''
+
+       # Camera_b config     
+        msg = { "msg_type" : "cam_config_b", 
+                "fov" : "80", 
+                "fish_eye_x" : "0.0", 
+                "fish_eye_y" : "0.0", 
+                "img_w" : "260", 
+                "img_h" : "120", 
+                "img_d" : "3", 
+                "img_enc" : 'JPG', 
+                "offset_x" : "0.0", 
+                "offset_y" : "4.5", 
+                "offset_z" : "25", 
+                "rot_x" : "80.0",
+                # "rot_y": "50.0",
+        }
+        self.send_now(json.dumps(msg))
+
         # print (f"Gym Interface: Camera resolution ({self.gym_config['img_w']}, {self.gym_config['img_h']}).")
 
         if self.lidar_config['enabled']:

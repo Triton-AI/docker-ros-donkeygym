@@ -23,9 +23,10 @@ class Wrapper:
         self.drive_sub = rospy.Subscriber('/drive', AckermannDriveStamped, self.drive_callback)
         self.lidar_pub = rospy.Publisher('/lidar', LaserScan, queue_size=10)
         self.image_pub = rospy.Publisher('/image', Image, queue_size=10)
+        self.image_pub_b = rospy.Publisher('/imageb', Image, queue_size=10)
         self.twist_pub = rospy.Publisher('/twist', Twist, queue_size=10)
         self.ImgT = ImageTools()
-        self.twist_msg = Twist()
+        self.img, self.img_b = None, None
         # self.breaking = deque()
         self.breaking = 10
         self.smooth_throttle = deque()
@@ -66,15 +67,17 @@ class Wrapper:
             throttle = sum(self.smooth_throttle) / 80
         
         # communicate with gyminterface
-        self.img, _, _, _, self.last_speed, _, self.laser_msg = self.gym.step(steering, throttle, breaking, reset)
+        self.img, self.img_b, _, _, _, self.last_speed, _, self.laser_msg = self.gym.step(steering, throttle, breaking, reset)
 
         # process data and publish 
         if self.laser_msg is not None:
             self.lidar.ranges = self.convert_lidar_to_laserscan(self.laser_msg)
         ros_img = self.ImgT.convert_cv2_to_ros_msg(self.img)
+        ros_img_b = self.ImgT.convert_cv2_to_ros_msg(self.img_b)
 
         self.lidar_pub.publish(self.lidar)
         self.image_pub.publish(ros_img)
+        self.image_pub_b.publish(ros_img_b)
 
     def load_param(self, path):
         with open(path, "r") as file:

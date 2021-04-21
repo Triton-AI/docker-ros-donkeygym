@@ -24,6 +24,7 @@ class LineFollower(object):
 
         # ROS Message publish
         self.image_sub = rospy.Subscriber("/image", Image, self.camera_callback)
+        self.image_sub_b = rospy.Subscriber("/imageb", Image, self.camera_callback_b)
         self.lidar_sub = rospy.Subscriber('/lidar', LaserScan, self.lidar_callback)
         self.drive_pub = rospy.Publisher('/drive', AckermannDriveStamped, queue_size=10)
 
@@ -73,9 +74,6 @@ class LineFollower(object):
         self.last_spot, self.last_border_x = None, None
         self.end = False
 
-    def lidar_callback(self, lidar_msg):
-        self.ranges = lidar_msg.ranges
-
     def dummy_publish(self):
         # Before start
         print("\n")
@@ -90,13 +88,53 @@ class LineFollower(object):
         cv2.namedWindow("wte")
         cv2.moveWindow("wte", 120,870)
         while not self.end:
-            ##### Yellow line
-            # # cv2.circle(self.bgr,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
-            rgb = cv2.cvtColor(self.bgr, cv2.COLOR_BGR2RGB)
+            ##### Camera_b testing
+            rgb = cv2.cvtColor(self.bgr_b, cv2.COLOR_BGR2RGB)
+            mask = cv2.inRange(self.bgr_b, self.border_lower, self.border_higher)
+            canny = cv2.GaussianBlur(cv2.Canny(mask, 100, 70), (3, 3), cv2.BORDER_DEFAULT)  # Blur
+            lines = cv2.HoughLinesP(canny, 1, np.pi/180, threshold=40, minLineLength=15, maxLineGap=600)
+            # max_slope = 0
+            # min_slope = 0
+            # max_slope_line = None
+            # min_slope_line = None
+            # if lines is not None:
+            #     for line in lines:
+            #         x1, y1, x2, y2 = line[0]
+            #         slope = -(y2 - y1) / (x2 - x1)
+            #         if slope > max_slope:
+            #             max_slope = slope
+            #             max_slope_line = line
+            #         elif slope < min_slope:
+            #             min_slope = slope
+            #             min_slope_line = line
+            # if max_slope_line is None:
+            #     max_slope_line = np.array([[0, mask.shape[0], 0, 0]])
+            # if min_slope_line is None:
+            #     min_slope_line = np.array([[mask.shape[1], 0, mask.shape[1], mask.shape[0]]])
+            # cv2.line(rgb, (max_slope_line[0][0], max_slope_line[0][1]),
+            #        (max_slope_line[0][2], max_slope_line[0][3]), (255, 0, 0), 3)
+            # cv2.line(rgb, (min_slope_line[0][0], min_slope_line[0][1]),
+            #    (min_slope_line[0][2], min_slope_line[0][3]), (255, 0, 0), 3)
+            slope_arr = np.array([])
+            x_value = np.array([])
+            if lines is not None:
+                for x in range(0, len(lines)):
+                    for x1, y1, x2, y2 in lines[x]:
+                        try:
+                            slope_arr = np.append(slope_arr, -(y2 - y1) / (x2 - x1))
+                        except:
+                            pass
+                        x_value = np.append(x_value, x1)
+                        x_value = np.append(x_value, x2)
+                        pts = np.array([[x1, y1], [x2 , y2]], np.int32)
+                        cv2.polylines(rgb, [pts], True, (0,255,0))
+                        
+            detect_curve = "Left" if np.mean(x_value) < 130 else "Right"
 
-            # mask = cv2.inRange(self.bgr, self.center_lower, self.center_higher)
-            # result =cv2.bitwise_and(self.bgr, self.bgr, mask=mask)
-            # cv2.circle(result,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
+            if slope_arr is not None:
+                std_distro = np.std(slope_arr)
+                if std_distro < 3:
+                    print(f"{detect_curve} turn detected!!\n")
             cv2.imshow('ylo', rgb)
 
             
@@ -104,63 +142,8 @@ class LineFollower(object):
             mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
             canny = cv2.GaussianBlur(cv2.Canny(mask, 100, 70), (3, 3), cv2.BORDER_DEFAULT)  # Blur
             lines = cv2.HoughLinesP(canny, 1, np.pi/180, threshold=40, minLineLength=15, maxLineGap=600)
-            # rospy.loginfo(f"{self.ranges}")
-            
-            """
-            mid_y = mask.shape[0] // 2
-            spot = np.where(canny[mid_y, :] == 255)[0]
-            if len(spot) < 1:
-                spot = self.last_spot
-            self.last_spot = spot
 
-            if np.ptp(spot) < 50:  # One edge is invisible (extreme cases)
-                if self.last_border_x > mask.shape[1] // 2:
-                    mid_x = (mask.shape[1] + (np.max(spot) + np.min(spot)) // 2) // 2  # Right extreme
-                else:
-                    mid_x = (np.max(spot) + np.min(spot)) // 4  # Left extreme
-                # rospy.loginfo(f"{mid_x}, {mask.shape[1]}, {spot}")
-            else:
-                mid_x = (np.max(spot) + np.min(spot)) // 2
-                if not self.last_border_x or abs(self.last_border_x - mid_x) < 25:
-                    self.last_border_x = mid_x
-                else:
-                    mid_x = self.last_border_x
-                    # rospy.loginfo(mid_x)
-                # rospy.loginfo(f"{spot}, {(np.max(spot) + np.min(spot)) // 2}")
-
-
-            cv2.circle(canny, (int(mid_x), int(mid_y)), 5, (255, 0, 0), -1)
-            
-            
-            y_left_max = []
-            y_right_max = []
-            if lines is not None:
-                for line in lines:
-                    if line[0][0] < mask.shape[1] / 2 and line[0][1] > 25:  # left line
-                        x1, y1, x2, y2 = line[0]
-                        if len(y_left_max) and abs(y1 - y2) > abs(y_left_max[1] - y_left_max[3]):
-                            y_left_max = line[0]
-                        elif len(y_left_max) == 0:
-                            y_left_max = line[0]
-                    if line[0][0] > mask.shape[1] / 2 and line[0][1] < 25:  # right line
-                        x1, y1, x2, y2 = line[0]
-                        if len(y_right_max) and abs(y1 - y2) > abs(y_right_max[1] - y_right_max[3]):
-                            y_right_max = line[0]
-                        elif len(y_right_max) == 0:
-                            y_right_max = line[0]
-
-                    cv2.line(canny, (line[0][0], line[0][1]), (line[0][2], line[0][3]), (255, 0, 0), 3)
-
-            if len(y_left_max):
-                cv2.line(canny, (y_left_max[0], y_left_max[1]), (y_left_max[2], y_left_max[3]), (255, 0, 0), 3)
-            if len(y_right_max):
-                cv2.line(canny, (y_right_max[0], y_right_max[1]), (y_right_max[2], y_right_max[3]), (255, 0, 0), 3)
-            
-            rospy.loginfo(f"{y_left_max}\n{y_right_max}")
-
-            """
             s = timer()
-
             # Set initial maximum and minimum slopes and lines
             max_slope = 0
             min_slope = 0
@@ -184,10 +167,10 @@ class LineFollower(object):
                 max_slope_line = np.array([[0, mask.shape[0], 0, 0]])
             if min_slope_line is None:
                 min_slope_line = np.array([[mask.shape[1], 0, mask.shape[1], mask.shape[0]]])
-            cv2.line(canny, (max_slope_line[0][0], max_slope_line[0][1]),
-                   (max_slope_line[0][2], max_slope_line[0][3]), (255, 0, 0), 3)
-            cv2.line(canny, (min_slope_line[0][0], min_slope_line[0][1]),
-               (min_slope_line[0][2], min_slope_line[0][3]), (255, 0, 0), 3)
+            # cv2.line(canny, (max_slope_line[0][0], max_slope_line[0][1]),
+            #        (max_slope_line[0][2], max_slope_line[0][3]), (255, 0, 0), 3)
+            # cv2.line(canny, (min_slope_line[0][0], min_slope_line[0][1]),
+            #    (min_slope_line[0][2], min_slope_line[0][3]), (255, 0, 0), 3)
             # rospy.loginfo(f"{max_slope_line}\n{min_slope_line}")
 
 
@@ -202,16 +185,25 @@ class LineFollower(object):
                 (max_slope_line[0][1] + max_slope_line[0][3] 
                 + min_slope_line[0][1] + min_slope_line[0][3]) // 4)
 
-            # cv2.fillPoly(canny, pts = [contours], color = (255, 255, 255))
-            cv2.circle(canny, centroid, 5, (255, 255, 255), -1)
+            cv2.fillPoly(canny, pts = [contours], color = (255, 255, 255))
+            cv2.circle(canny, centroid, 5, (0, 0, 0), -1)
 
             # rospy.loginfo(f"{centroid[0] - mask.shape[1] /2}")
-            rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}\nTime: {(timer() - s):.4f}")
+            # rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}\nTime: {(timer() - s):.4f}")
             
             cv2.imshow("wte", canny)
             cv2.waitKey(100)
+    
+    def lidar_callback(self, lidar_msg):
+        self.ranges = lidar_msg.ranges
+    
+    def camera_callback_b(self, data):
+        self.bgr_b = self.bridge_object.imgmsg_to_cv2(data, "bgr8")
+        height, width, channels = self.bgr_b.shape
+        self.bgr_b = self.bgr_b[int(height * (2 / 5)):int(height), :]
+        
 
-    def camera_callback(self,data):
+    def camera_callback(self, data):
         # Initialize
         self.running, self.isShow = True, True
 
@@ -221,54 +213,8 @@ class LineFollower(object):
         # Crop image
         height, width, channels = cv_image.shape
         self.bgr = cv_image[int(height * (2 / 5)):int(height * (3 / 4)), :]
-
-        # Using yellow line
-        """
-        # Create filter mask
-        mask = cv2.inRange(self.bgr, self.center_lower, self.center_higher)
-
-        # Calculate centroid of the blob of binary image using ImageMoments --> ERROR
-        m = cv2.moments(mask, False)
-        try:
-            self.cx, self.cy = m['m10']/m['m00'], m['m01']/m['m00']
-        except ZeroDivisionError:
-            self.cy, self.cx = height / 2, width / 2
-        """
         
-        # Using white line
-        """
-        mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
-        canny = cv2.Canny(mask, 100, 100)
-
-        mid_y = mask.shape[0] // 2
-        spot = np.where(canny[mid_y, :] == 255)[0]
-        if len(spot) < 1:
-            spot = self.last_spot
-        self.last_spot = spot
-        
-
-        #if self.last_border_x is None:
-        #    self.last_border_x = mask.shape[1] // 2
-        if np.ptp(spot) < 50:  # One edge is invisible (extreme cases)
-            if self.last_border_x > mask.shape[1] // 2:
-                mid_x = (mask.shape[1] + (np.max(spot) + np.min(spot)) // 2) // 2  # Right extreme
-            else:
-                mid_x = (np.max(spot) + np.min(spot)) // 4  # Left extreme
-            # rospy.loginfo(f"{mid_x}, {mask.shape[1]}, {spot}")
-        else:
-            mid_x = (np.max(spot) + np.min(spot)) // 2
-            if not self.last_border_x or abs(self.last_border_x - mid_x) < 25:
-                self.last_border_x = mid_x
-            else:
-                mid_x = self.last_border_x
-
-        error_x = mid_x - width / 2
-        if not self.last_error or abs(error_x - self.last_error) < 80:  # error stability control
-            self.last_error = error_x
-        else:
-            error_x = self.last_error
-        """
-        
+        # Use white lanes
         error_x, ang = self.extract_white_line()
         if ang:
             self.steering = ang
@@ -283,12 +229,7 @@ class LineFollower(object):
                 self.steering = self.last_steering
             self.a_drive.drive.steering_angle = -self.steering
 
-
         self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 19 - 2
-        # if not self.last_speed or abs(self.speed - self.last_speed) < 13:  # speed stability control
-        #     self.last_speed = self.speed
-        # else:
-        #     self.speed = self.last_speed
         self.a_drive.drive.speed = self.speed
         
         # Publish drive message
