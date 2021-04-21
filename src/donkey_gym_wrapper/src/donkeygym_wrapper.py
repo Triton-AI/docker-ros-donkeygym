@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import sys
 import json
-import rospy
-import math
 import yaml
 import time
+import rospy
 import numpy as np
 from threading import Thread
+from collections import deque
 from image_tools import ImageTools
 from geometry_msgs.msg import Twist
 from gyminterface import GymInterface
@@ -25,6 +25,10 @@ class Wrapper:
         self.image_pub = rospy.Publisher('/image', Image, queue_size=10)
         self.twist_pub = rospy.Publisher('/twist', Twist, queue_size=10)
         self.ImgT = ImageTools()
+        self.twist_msg = Twist()
+        # self.breaking = deque()
+        self.breaking = 10
+        self.smooth_throttle = deque()
 
         angle_min = 0
         angle_max = 360
@@ -38,22 +42,39 @@ class Wrapper:
         self.called = True
         breaking, reset = 0, 0
         self.max_steering = 1
-        steering = (drive.drive.steering_angle / self.max_steering) * 180 / math.pi
+        steering = (drive.drive.steering_angle / self.max_steering) * 180 / np.pi
         throttle = int(drive.drive.speed > self.last_speed)
-        self.twist_msg = Twist()
-        self.img, self.twist_msg.linear.x, self.twist_msg.linear.y, self.twist_msg.linear.z, self.last_speed, _, self.laser_msg = \
-                                                        self.gym.step(steering, throttle, breaking, reset)
 
-        ros_img = self.ImgT.convert_cv2_to_ros_msg(self.img)
+        # sharp turn breaking
+        # self.breaking.appendleft(throttle)
+        # if len(self.breaking) > 250:
+        #     self.breaking.pop()
+        #     if self.breaking.count(1) < 5:
+        #         print(self.breaking)
+        #         print("Breaking!!!!!!!!!!!!")
+        #         breaking = 1 / (self.breaking.count(1) + 3)
+        if drive.drive.speed < -1 and self.last_speed > 2:
+            self.breaking += 1
+            breaking = 1 / (self.breaking * 0.1)
+            print(f"Breaking time!! {breaking:.5f} {self.last_speed:.5f}")
+        else:
+            self.breaking = 0
+        
+        self.smooth_throttle.appendleft(throttle)
+        if len(self.smooth_throttle) > 80:
+            self.smooth_throttle.pop()
+            throttle = sum(self.smooth_throttle) / 80
+        
+        # communicate with gyminterface
+        self.img, _, _, _, self.last_speed, _, self.laser_msg = self.gym.step(steering, throttle, breaking, reset)
+
+        # process data and publish 
         if self.laser_msg is not None:
             self.lidar.ranges = self.convert_lidar_to_laserscan(self.laser_msg)
+        ros_img = self.ImgT.convert_cv2_to_ros_msg(self.img)
 
-        if self.lidar_pub is not None:
-            self.lidar_pub.publish(self.lidar)
-        if self.image_pub is not None:
-            self.image_pub.publish(ros_img)
-        if self.twist_pub is not None:
-            self.twist_pub.publish()
+        self.lidar_pub.publish(self.lidar)
+        self.image_pub.publish(ros_img)
 
     def load_param(self, path):
         with open(path, "r") as file:
@@ -70,7 +91,7 @@ def main():
     rospy.init_node("wrapper_node", anonymous=True)
     w = Wrapper()
 
-    rospy.Rate(100)
+    rospy.Rate(40)
     rospy.spin()
     def shutdownhook():
         print("Shutting down lolololol.....")

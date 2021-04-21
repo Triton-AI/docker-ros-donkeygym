@@ -61,7 +61,7 @@ class LineFollower(object):
 
         # Misc
         self.running, self.isStart, self.a_drive = False, False, None
-        self.angular_z, self.speed, self.steering, self.ang_mul = 0, 0, 0, 0.38  #  0.36
+        self.angular_z, self.speed, self.steering, self.ang_mul = 0, 0, 0, 0.3  #  0.36
         self.a_drive = AckermannDriveStamped()
         self.a_drive.drive.steering_angle = 0.0
         self.a_drive.drive.speed = 0.0
@@ -91,7 +91,6 @@ class LineFollower(object):
         cv2.moveWindow("wte", 120,870)
         while not self.end:
             ##### Yellow line
-            # rospy.loginfo(f"{self.ranges}")
             # # cv2.circle(self.bgr,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
             rgb = cv2.cvtColor(self.bgr, cv2.COLOR_BGR2RGB)
 
@@ -105,6 +104,7 @@ class LineFollower(object):
             mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
             canny = cv2.GaussianBlur(cv2.Canny(mask, 100, 70), (3, 3), cv2.BORDER_DEFAULT)  # Blur
             lines = cv2.HoughLinesP(canny, 1, np.pi/180, threshold=40, minLineLength=15, maxLineGap=600)
+            # rospy.loginfo(f"{self.ranges}")
             
             """
             mid_y = mask.shape[0] // 2
@@ -203,7 +203,7 @@ class LineFollower(object):
                 + min_slope_line[0][1] + min_slope_line[0][3]) // 4)
 
             # cv2.fillPoly(canny, pts = [contours], color = (255, 255, 255))
-            cv2.circle(canny, centroid, 5, (0, 255, 0), -1)
+            cv2.circle(canny, centroid, 5, (255, 255, 255), -1)
 
             # rospy.loginfo(f"{centroid[0] - mask.shape[1] /2}")
             rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}\nTime: {(timer() - s):.4f}")
@@ -277,18 +277,18 @@ class LineFollower(object):
         # Calculate speed and steering values
             self.angular_z = (error_x / 100) * self.ang_mul
             self.steering = self.steering_pid(self.angular_z)
-            if not self.last_steering or abs(self.last_steering - self.steering) < 0.008:  # steering stability control
+            if not self.last_steering or abs(self.last_steering - self.steering) < 0.01:  # steering stability control
                 self.last_steering = self.steering
             else:
                 self.steering = self.last_steering
             self.a_drive.drive.steering_angle = -self.steering
 
 
-        self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 18 - 2
-        if not self.last_speed or abs(self.speed - self.last_speed) < 10:  # speed stability control
-            self.last_speed = self.speed
-        else:
-            self.speed = self.last_speed
+        self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 19 - 2
+        # if not self.last_speed or abs(self.speed - self.last_speed) < 13:  # speed stability control
+        #     self.last_speed = self.speed
+        # else:
+        #     self.speed = self.last_speed
         self.a_drive.drive.speed = self.speed
         
         # Publish drive message
@@ -354,7 +354,7 @@ def main():
     t = Thread(target = rfg.dummy_publish, daemon=False)
     t.start()
     """
-    rate = rospy.Rate(100)
+    rate = rospy.Rate(40)
     rospy.spin()
 
     def shutdownhook():
