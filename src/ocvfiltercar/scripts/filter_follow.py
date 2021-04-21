@@ -19,9 +19,6 @@ from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
 
 class LineFollower(object):
     def __init__(self):
-        self.bridge_object = CvBridge()
-        # self.datapath = "/home/michaelji/tritonai/catkin_ws/src/ocvfiltercar/data/records_1/"
-
         # ROS Message publish
         self.image_sub = rospy.Subscriber("/image", Image, self.camera_callback)
         self.image_sub_b = rospy.Subscriber("/imageb", Image, self.camera_callback_b)
@@ -61,6 +58,8 @@ class LineFollower(object):
         self.border_higher = np.array([self.rgbsidefilter["highR"], self.rgbsidefilter["highG"], self.rgbsidefilter["highB"]])
 
         # Misc
+        self.bridge_object = CvBridge()
+        self.dir, self.ct = None, 0
         self.running, self.isStart, self.a_drive = False, False, None
         self.angular_z, self.speed, self.steering, self.ang_mul = 0, 0, 0, 0.3  #  0.36
         self.a_drive = AckermannDriveStamped()
@@ -70,7 +69,6 @@ class LineFollower(object):
         self.steering_pid = PID(0.1, 0.001, 0.2)
         self.steering_pid.auto_mode = True
         self.last_error, self.last_steering, self.last_speed = None, None, None
-
         self.last_spot, self.last_border_x = None, None
         self.end = False
 
@@ -88,111 +86,42 @@ class LineFollower(object):
         cv2.namedWindow("wte")
         cv2.moveWindow("wte", 120,870)
         while not self.end:
+            ######################
             ##### Camera_b testing
             rgb = cv2.cvtColor(self.bgr_b, cv2.COLOR_BGR2RGB)
             mask = cv2.inRange(self.bgr_b, self.border_lower, self.border_higher)
             canny = cv2.GaussianBlur(cv2.Canny(mask, 100, 70), (3, 3), cv2.BORDER_DEFAULT)  # Blur
             lines = cv2.HoughLinesP(canny, 1, np.pi/180, threshold=40, minLineLength=15, maxLineGap=600)
-            # max_slope = 0
-            # min_slope = 0
-            # max_slope_line = None
-            # min_slope_line = None
-            # if lines is not None:
-            #     for line in lines:
-            #         x1, y1, x2, y2 = line[0]
-            #         slope = -(y2 - y1) / (x2 - x1)
-            #         if slope > max_slope:
-            #             max_slope = slope
-            #             max_slope_line = line
-            #         elif slope < min_slope:
-            #             min_slope = slope
-            #             min_slope_line = line
-            # if max_slope_line is None:
-            #     max_slope_line = np.array([[0, mask.shape[0], 0, 0]])
-            # if min_slope_line is None:
-            #     min_slope_line = np.array([[mask.shape[1], 0, mask.shape[1], mask.shape[0]]])
-            # cv2.line(rgb, (max_slope_line[0][0], max_slope_line[0][1]),
-            #        (max_slope_line[0][2], max_slope_line[0][3]), (255, 0, 0), 3)
-            # cv2.line(rgb, (min_slope_line[0][0], min_slope_line[0][1]),
-            #    (min_slope_line[0][2], min_slope_line[0][3]), (255, 0, 0), 3)
             slope_arr = np.array([])
             x_value = np.array([])
             if lines is not None:
-                for x in range(0, len(lines)):
-                    for x1, y1, x2, y2 in lines[x]:
-                        try:
-                            slope_arr = np.append(slope_arr, -(y2 - y1) / (x2 - x1))
-                        except:
-                            pass
-                        x_value = np.append(x_value, x1)
-                        x_value = np.append(x_value, x2)
-                        pts = np.array([[x1, y1], [x2 , y2]], np.int32)
-                        cv2.polylines(rgb, [pts], True, (0,255,0))
-                        
-            detect_curve = "Left" if np.mean(x_value) < 130 else "Right"
-
+                for l in lines:
+                    x1, y1, x2, y2 = l[0]
+                    if x2 - x1 != 0:
+                        slope_arr = np.append(slope_arr, -(y2 - y1) / (x2 - x1))
+                    
+                    x_value = np.append(x_value, x1)
+                    x_value = np.append(x_value, x2)
+                    pts = np.array([[x1, y1], [x2 , y2]], np.int32)
+                    cv2.polylines(rgb, [pts], True, (0,255,0))
             if slope_arr is not None:
                 std_distro = np.std(slope_arr)
-                if std_distro < 3:
-                    print(f"{detect_curve} turn detected!!\n")
+                if std_distro < 1:
+                    self.ct += 1 if self.ct < 30 else 0
+                    self.dir = 0 if np.mean(x_value) < 110 else 1
+                    # print(f"{self.dir} turn detected!! {self.ct} {std_distro}")
+                else:
+                    self.ct -= 1.7 if self.ct > 1 else 0
+
             cv2.imshow('ylo', rgb)
-
             
+            ########################
             ##### White line testing
-            mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
-            canny = cv2.GaussianBlur(cv2.Canny(mask, 100, 70), (3, 3), cv2.BORDER_DEFAULT)  # Blur
-            lines = cv2.HoughLinesP(canny, 1, np.pi/180, threshold=40, minLineLength=15, maxLineGap=600)
-
-            s = timer()
-            # Set initial maximum and minimum slopes and lines
-            max_slope = 0
-            min_slope = 0
-            max_slope_line = None
-            min_slope_line = None
-
-            # For each line, best left line is max slope, best right line is min slope
-            if lines is not None:
-                for line in lines:
-                    x1, y1, x2, y2 = line[0]
-                    slope = -(y2 - y1) / (x2 - x1)
-                    if slope > max_slope:
-                        max_slope = slope
-                        max_slope_line = line
-                    elif slope < min_slope:
-                        min_slope = slope
-                        min_slope_line = line
-
-            # Draw lines
-            if max_slope_line is None:
-                max_slope_line = np.array([[0, mask.shape[0], 0, 0]])
-            if min_slope_line is None:
-                min_slope_line = np.array([[mask.shape[1], 0, mask.shape[1], mask.shape[0]]])
-            # cv2.line(canny, (max_slope_line[0][0], max_slope_line[0][1]),
-            #        (max_slope_line[0][2], max_slope_line[0][3]), (255, 0, 0), 3)
-            # cv2.line(canny, (min_slope_line[0][0], min_slope_line[0][1]),
-            #    (min_slope_line[0][2], min_slope_line[0][3]), (255, 0, 0), 3)
-            # rospy.loginfo(f"{max_slope_line}\n{min_slope_line}")
-
-
-            # Contour and draw poly
-            contours = np.array([[max_slope_line[0][0], max_slope_line[0][1]],
-                [max_slope_line[0][2], max_slope_line[0][3]], 
-                [min_slope_line[0][0], min_slope_line[0][1]],
-                [min_slope_line[0][2], min_slope_line[0][3]]])
-
-            centroid = ((max_slope_line[0][0] + max_slope_line[0][2] 
-                + min_slope_line[0][0] + min_slope_line[0][2]) // 4,
-                (max_slope_line[0][1] + max_slope_line[0][3] 
-                + min_slope_line[0][1] + min_slope_line[0][3]) // 4)
-
-            cv2.fillPoly(canny, pts = [contours], color = (255, 255, 255))
-            cv2.circle(canny, centroid, 5, (0, 0, 0), -1)
-
-            # rospy.loginfo(f"{centroid[0] - mask.shape[1] /2}")
-            # rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}\nTime: {(timer() - s):.4f}")
-            
-            cv2.imshow("wte", canny)
-            cv2.waitKey(100)
+            cv2.fillPoly(self.canny, pts = [self.contours], color = (255, 255, 255))
+            cv2.circle(self.canny, (int(self.centroid[0]), int(self.centroid[1])), 5, (0, 0, 0), -1)
+            rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}")
+            cv2.imshow("wte", self.canny)
+            cv2.waitKey(60)
     
     def lidar_callback(self, lidar_msg):
         self.ranges = lidar_msg.ranges
@@ -202,7 +131,6 @@ class LineFollower(object):
         height, width, channels = self.bgr_b.shape
         self.bgr_b = self.bgr_b[int(height * (2 / 5)):int(height), :]
         
-
     def camera_callback(self, data):
         # Initialize
         self.running, self.isShow = True, True
@@ -218,7 +146,6 @@ class LineFollower(object):
         error_x, ang = self.extract_white_line()
         if ang:
             self.steering = ang
-            self.a_drive.drive.steering_angle = self.steering
         else:
         # Calculate speed and steering values
             self.angular_z = (error_x / 100) * self.ang_mul
@@ -227,18 +154,33 @@ class LineFollower(object):
                 self.last_steering = self.steering
             else:
                 self.steering = self.last_steering
-            self.a_drive.drive.steering_angle = -self.steering
-
-        self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 19 - 2
-        self.a_drive.drive.speed = self.speed
+        
+        # Speed control on turns
+        if 28 > self.ct > 0:
+            if self.dir == 0:
+                self.steering += 0.001
+            elif self.dir == 1:
+                self.steering -= 0.001
+            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 15 - 2
+        elif self.ct > 28:
+            if self.dir == 0:
+                self.steering += 0.001
+            elif self.dir == 1:
+                self.steering -= 0.001
+            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 24 - 2
+            
+        else:
+            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 33 - 2
         
         # Publish drive message
+        self.a_drive.drive.steering_angle = -self.steering
+        self.a_drive.drive.speed = self.speed
         self.drive_pub.publish(self.a_drive)
 
     def extract_white_line(self):
         mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
-        canny = cv2.GaussianBlur(cv2.Canny(mask, 100, 70), (3, 3), cv2.BORDER_DEFAULT)  # canny + Blur
-        lines = cv2.HoughLinesP(canny, 1, np.pi/180, threshold=40, minLineLength=15, maxLineGap=600)
+        self.canny = cv2.GaussianBlur(cv2.Canny(mask, 100, 70), (3, 3), cv2.BORDER_DEFAULT)  # canny + Blur
+        lines = cv2.HoughLinesP(self.canny, 1, np.pi/180, threshold=40, minLineLength=15, maxLineGap=600)
 
         # Set initial maximum and minimum slopes and lines
         max_slope = 0
@@ -250,37 +192,42 @@ class LineFollower(object):
         if lines is not None:
             for line in lines:
                 x1, y1, x2, y2 = line[0]
-                slope = - (y2 - y1) / (x2 - x1)
-                if slope > max_slope:
-                    max_slope = slope
-                    max_slope_line = line
-                elif slope < min_slope:
-                    min_slope = slope
-                    min_slope_line = line
+                if x2 - x1 != 0:
+                    slope = - (y2 - y1) / (x2 - x1)
+                    if slope > max_slope:
+                        max_slope = slope
+                        max_slope_line = line
+                    elif slope < min_slope:
+                        min_slope = slope
+                        min_slope_line = line
 
         steering_ang = None
         # Draw lines
         if max_slope_line is None:
             max_slope_line = np.array([[0, mask.shape[0], 0, 0]])
-            steering_ang = -0.5
+            steering_ang = 0.5
         if min_slope_line is None:
             min_slope_line = np.array([[mask.shape[1], 0, mask.shape[1], mask.shape[0]]])
-            steering_ang = 0.5
+            steering_ang = -0.5
 
         # find centroid
-        centroid = ((max_slope_line[0][0] + max_slope_line[0][2] 
+        self.centroid = ((max_slope_line[0][0] + max_slope_line[0][2] 
             + min_slope_line[0][0] + min_slope_line[0][2]) / 4,
             (max_slope_line[0][1] + max_slope_line[0][3] 
             + min_slope_line[0][1] + min_slope_line[0][3]) / 4)
+        
+        self.contours = np.array([[max_slope_line[0][0], max_slope_line[0][1]],
+                [max_slope_line[0][2], max_slope_line[0][3]], 
+                [min_slope_line[0][0], min_slope_line[0][1]],
+                [min_slope_line[0][2], min_slope_line[0][3]]])
 
-        return centroid[0] - mask.shape[1] / 2, steering_ang
+        return self.centroid[0] - mask.shape[1] / 2, steering_ang
 
     def clean_up(self):
         self.end = True
         cv2.destroyAllWindows()
         sys.exit(1)
         
-
 
 def main():
     rospy.init_node('line_following_node', anonymous=True)
@@ -308,7 +255,6 @@ def main():
     
 if __name__ == '__main__':
     main()
-
 
 ################################################################################################
 ################################################################################################

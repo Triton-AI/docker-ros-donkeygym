@@ -47,19 +47,12 @@ class Wrapper:
         throttle = int(drive.drive.speed > self.last_speed)
 
         # sharp turn breaking
-        # self.breaking.appendleft(throttle)
-        # if len(self.breaking) > 250:
-        #     self.breaking.pop()
-        #     if self.breaking.count(1) < 5:
-        #         print(self.breaking)
-        #         print("Breaking!!!!!!!!!!!!")
-        #         breaking = 1 / (self.breaking.count(1) + 3)
-        if drive.drive.speed < -1 and self.last_speed > 2:
-            self.breaking += 1
-            breaking = 1 / (self.breaking * 0.1)
-            print(f"Breaking time!! {breaking:.5f} {self.last_speed:.5f}")
-        else:
-            self.breaking = 0
+        # if drive.drive.speed < -1 and self.last_speed > 2:
+        #     self.breaking += 1
+        #     breaking = 1 / (self.breaking * 0.1)
+        #     print(f"Breaking time!! {breaking:.5f} {self.last_speed:.5f}")
+        # else:
+        #     self.breaking = 0
         
         self.smooth_throttle.appendleft(throttle)
         if len(self.smooth_throttle) > 80:
