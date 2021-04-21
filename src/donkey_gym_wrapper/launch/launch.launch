@@ -6,4 +6,9 @@
     <param name="cam" value="$(arg config)" />
     <param name="nn_path" value="$(arg cf_path)" />
   </node>
+  <!--
+  <node pkg="ocvfiltercar" name="filter_follow" type="filter_follow.py" output="screen">
+            <param name="frame_id" value="base_link" />
+  </node>
+  -->
 </launch>

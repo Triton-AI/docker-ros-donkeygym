@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys
 import json
 import rospy
 import math
@@ -44,8 +45,8 @@ class Wrapper:
                                                         self.gym.step(steering, throttle, breaking, reset)
 
         ros_img = self.ImgT.convert_cv2_to_ros_msg(self.img)
-
-        self.lidar.ranges = self.convert_lidar_to_laserscan(self.laser_msg)
+        if self.laser_msg is not None:
+            self.lidar.ranges = self.convert_lidar_to_laserscan(self.laser_msg)
 
         if self.lidar_pub is not None:
             self.lidar_pub.publish(self.lidar)
@@ -53,15 +54,6 @@ class Wrapper:
             self.image_pub.publish(ros_img)
         if self.twist_pub is not None:
             self.twist_pub.publish()
-
-        """
-        Subscribe to one of the following topics:
-
-        rgb/image_rect_color: Color rectified image (left sensor by default)
-        rgb_raw/image_raw_color: Color unrectified image (left sensor by default)
-        right/image_rect_color: Right camera rectified image
-        right_raw/image_raw_color: Right camera unrectified image
-        """
 
     def load_param(self, path):
         with open(path, "r") as file:
@@ -77,12 +69,14 @@ class Wrapper:
 def main():
     rospy.init_node("wrapper_node", anonymous=True)
     w = Wrapper()
-    # t = Thread(target = w.print_lidar, daemon=False)
-    # t.start()
 
     rospy.Rate(100)
     rospy.spin()
-    rospy.on_shutdown(lambda: print("Shutting down lolololol....."))
+    def shutdownhook():
+        print("Shutting down lolololol.....")
+        sys.exit(1)
+
+    rospy.on_shutdown(shutdownhook)
 
 
 if __name__ == '__main__':

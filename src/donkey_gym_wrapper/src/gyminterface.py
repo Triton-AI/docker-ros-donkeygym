@@ -24,7 +24,7 @@ DEFAULT_GYM_CONFIG = {
     'car_name' : 'Trident',
     'font_size' : 50,
 
-    "fov" : 80, 
+    "fov" : 70, 
     "fish_eye_x" : 0.0, 
     "fish_eye_y" : 0.0, 
     "img_w" : 160, 
@@ -32,7 +32,7 @@ DEFAULT_GYM_CONFIG = {
     "img_d" : 3, 
     "img_enc" : 'JPG', 
     "offset_x" : 0.0, 
-    "offset_y" : 3, 
+    "offset_y" : 3.05, 
     "offset_z" : 1.0, 
     "rot_x" : 0.0,
     # "rot_y": 180,
@@ -160,11 +160,13 @@ class GymInterface(Component, SDClient):
             imgString = json_packet["image"]
             image = Image.open(BytesIO(base64.b64decode(imgString)))
             self.last_image = np.asarray(image, dtype=np.uint8)
+            # self.last_image = json_packet
             self.pos_x = float(json_packet['pos_x'])
             self.pos_y = float(json_packet['pos_y'])
             self.pos_z = float(json_packet['pos_z'])
             self.speed = float(json_packet['speed'])
             self.cte = float(json_packet['cte'])
+            
 
             if "lidar" in json_packet:
 
@@ -185,7 +187,7 @@ class GymInterface(Component, SDClient):
             'guid': self.gym_config['guid'] }
         self.send_now(json.dumps(msg))
 
-        time.sleep(0.5)
+        # time.sleep(0.5)
 
         # print('Sending car config')
         # Car config
@@ -216,7 +218,7 @@ class GymInterface(Component, SDClient):
         "rot_x" : self.gym_config['rot_x'].__str__() 
         }
         self.send_now(json.dumps(msg))
-        '''
+       '''
         # print (f"Gym Interface: Camera resolution ({self.gym_config['img_w']}, {self.gym_config['img_h']}).")
 
         if self.lidar_config['enabled']:

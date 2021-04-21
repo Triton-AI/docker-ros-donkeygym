@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import cv2
+import sys
 import math
 import time
 import rospy
@@ -60,7 +61,7 @@ class LineFollower(object):
 
         # Misc
         self.running, self.isStart, self.a_drive = False, False, None
-        self.angular_z, self.speed, self.steering, self.ang_mul = 0, 0, 0, 0.36
+        self.angular_z, self.speed, self.steering, self.ang_mul = 0, 0, 0, 0.38  #  0.36
         self.a_drive = AckermannDriveStamped()
         self.a_drive.drive.steering_angle = 0.0
         self.a_drive.drive.speed = 0.0
@@ -70,6 +71,7 @@ class LineFollower(object):
         self.last_error, self.last_steering, self.last_speed = None, None, None
 
         self.last_spot, self.last_border_x = None, None
+        self.end = False
 
     def lidar_callback(self, lidar_msg):
         self.ranges = lidar_msg.ranges
@@ -83,26 +85,26 @@ class LineFollower(object):
 
         # After start
         print("\n")
-        # cv2.namedWindow("ylo")
-        # cv2.moveWindow("ylo", 120,700)
+        cv2.namedWindow("ylo")
+        cv2.moveWindow("ylo", 120,700)
         cv2.namedWindow("wte")
         cv2.moveWindow("wte", 120,870)
-        while 1:
+        while not self.end:
             ##### Yellow line
             # rospy.loginfo(f"{self.ranges}")
             # # cv2.circle(self.bgr,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
-            # rgb = cv2.cvtColor(self.bgr, cv2.COLOR_BGR2RGB)
+            rgb = cv2.cvtColor(self.bgr, cv2.COLOR_BGR2RGB)
 
             # mask = cv2.inRange(self.bgr, self.center_lower, self.center_higher)
             # result =cv2.bitwise_and(self.bgr, self.bgr, mask=mask)
             # cv2.circle(result,(int(self.cx), int(self.cy)), 5,(0,0,255),-1)
-            # cv2.imshow('ylo', rgb)
+            cv2.imshow('ylo', rgb)
 
             
             ##### White line testing
             mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
             canny = cv2.GaussianBlur(cv2.Canny(mask, 100, 70), (3, 3), cv2.BORDER_DEFAULT)  # Blur
-            lines = cv2.HoughLinesP(canny, 1, np.pi/180, threshold=40, minLineLength=5, maxLineGap=600)
+            lines = cv2.HoughLinesP(canny, 1, np.pi/180, threshold=40, minLineLength=15, maxLineGap=600)
             
             """
             mid_y = mask.shape[0] // 2
@@ -158,8 +160,6 @@ class LineFollower(object):
 
             """
             s = timer()
-            canny = cv2.GaussianBlur(cv2.Canny(mask, 100, 70), (3, 3), cv2.BORDER_DEFAULT)  # Blur
-            lines = cv2.HoughLinesP(canny, 1, np.pi/180, threshold=50, minLineLength=5, maxLineGap=550)
 
             # Set initial maximum and minimum slopes and lines
             max_slope = 0
@@ -184,11 +184,11 @@ class LineFollower(object):
                 max_slope_line = np.array([[0, mask.shape[0], 0, 0]])
             if min_slope_line is None:
                 min_slope_line = np.array([[mask.shape[1], 0, mask.shape[1], mask.shape[0]]])
-            #cv2.line(canny, (max_slope_line[0][0], max_slope_line[0][1]),
-            #        (max_slope_line[0][2], max_slope_line[0][3]), (255, 0, 0), 3)
-            #cv2.line(canny, (min_slope_line[0][0], min_slope_line[0][1]),
-            #    (min_slope_line[0][2], min_slope_line[0][3]), (255, 0, 0), 3)
-            #rospy.loginfo(f"{max_slope_line}\n{min_slope_line}")
+            cv2.line(canny, (max_slope_line[0][0], max_slope_line[0][1]),
+                   (max_slope_line[0][2], max_slope_line[0][3]), (255, 0, 0), 3)
+            cv2.line(canny, (min_slope_line[0][0], min_slope_line[0][1]),
+               (min_slope_line[0][2], min_slope_line[0][3]), (255, 0, 0), 3)
+            # rospy.loginfo(f"{max_slope_line}\n{min_slope_line}")
 
 
             # Contour and draw poly
@@ -202,7 +202,7 @@ class LineFollower(object):
                 (max_slope_line[0][1] + max_slope_line[0][3] 
                 + min_slope_line[0][1] + min_slope_line[0][3]) // 4)
 
-            cv2.fillPoly(canny, pts = [contours], color = (255, 255, 255))
+            # cv2.fillPoly(canny, pts = [contours], color = (255, 255, 255))
             cv2.circle(canny, centroid, 5, (0, 255, 0), -1)
 
             # rospy.loginfo(f"{centroid[0] - mask.shape[1] /2}")
@@ -220,7 +220,7 @@ class LineFollower(object):
 
         # Crop image
         height, width, channels = cv_image.shape
-        self.bgr = cv_image[int(height * (2 / 5)):int(height * (3 / 4)), 0:width]
+        self.bgr = cv_image[int(height * (2 / 5)):int(height * (3 / 4)), :]
 
         # Using yellow line
         """
@@ -277,15 +277,15 @@ class LineFollower(object):
         # Calculate speed and steering values
             self.angular_z = (error_x / 100) * self.ang_mul
             self.steering = self.steering_pid(self.angular_z)
-            if not self.last_steering or abs(self.last_steering - self.steering) < 0.02:  # steering stability control
+            if not self.last_steering or abs(self.last_steering - self.steering) < 0.008:  # steering stability control
                 self.last_steering = self.steering
             else:
                 self.steering = self.last_steering
             self.a_drive.drive.steering_angle = -self.steering
 
 
-        self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 17
-        if not self.last_speed or abs(self.speed - self.last_speed) < 8:  # speed stability control
+        self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 18 - 2
+        if not self.last_speed or abs(self.speed - self.last_speed) < 10:  # speed stability control
             self.last_speed = self.speed
         else:
             self.speed = self.last_speed
@@ -297,7 +297,7 @@ class LineFollower(object):
     def extract_white_line(self):
         mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
         canny = cv2.GaussianBlur(cv2.Canny(mask, 100, 70), (3, 3), cv2.BORDER_DEFAULT)  # canny + Blur
-        lines = cv2.HoughLinesP(canny, 1, np.pi/180, threshold=40, minLineLength=5, maxLineGap=600)
+        lines = cv2.HoughLinesP(canny, 1, np.pi/180, threshold=40, minLineLength=15, maxLineGap=600)
 
         # Set initial maximum and minimum slopes and lines
         max_slope = 0
@@ -326,12 +326,7 @@ class LineFollower(object):
             min_slope_line = np.array([[mask.shape[1], 0, mask.shape[1], mask.shape[0]]])
             steering_ang = 0.5
 
-        # Contour and draw poly
-        contours = np.array([[max_slope_line[0][0], max_slope_line[0][1]],
-            [max_slope_line[0][2], max_slope_line[0][3]], 
-            [min_slope_line[0][0], min_slope_line[0][1]],
-            [min_slope_line[0][2], min_slope_line[0][3]]])
-
+        # find centroid
         centroid = ((max_slope_line[0][0] + max_slope_line[0][2] 
             + min_slope_line[0][0] + min_slope_line[0][2]) / 4,
             (max_slope_line[0][1] + max_slope_line[0][3] 
@@ -340,7 +335,9 @@ class LineFollower(object):
         return centroid[0] - mask.shape[1] / 2, steering_ang
 
     def clean_up(self):
+        self.end = True
         cv2.destroyAllWindows()
+        sys.exit(1)
         
 
 
