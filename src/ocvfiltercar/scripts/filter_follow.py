@@ -167,7 +167,7 @@ class LineFollower(object):
                 self.steering += 0.001
             elif self.dir == 1:
                 self.steering -= 0.001
-            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 24 - 2
+            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 27 - 2
             
         else:
             self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 33 - 2

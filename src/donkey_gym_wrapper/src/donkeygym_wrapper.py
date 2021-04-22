@@ -65,12 +65,14 @@ class Wrapper:
         # process data and publish 
         if self.laser_msg is not None:
             self.lidar.ranges = self.convert_lidar_to_laserscan(self.laser_msg)
-        ros_img = self.ImgT.convert_cv2_to_ros_msg(self.img)
-        ros_img_b = self.ImgT.convert_cv2_to_ros_msg(self.img_b)
+        
+        if self.img is not None and self.img_b is not None:
+            ros_img = self.ImgT.convert_cv2_to_ros_msg(self.img)
+            ros_img_b = self.ImgT.convert_cv2_to_ros_msg(self.img_b)
 
-        self.lidar_pub.publish(self.lidar)
-        self.image_pub.publish(ros_img)
-        self.image_pub_b.publish(ros_img_b)
+            self.lidar_pub.publish(self.lidar)
+            self.image_pub.publish(ros_img)
+            self.image_pub_b.publish(ros_img_b)
 
     def load_param(self, path):
         with open(path, "r") as file:
