@@ -62,6 +62,7 @@ class Wrapper:
         # communicate with gyminterface
         self.img, self.img_b, _, _, _, self.last_speed, _, self.laser_msg = self.gym.step(steering, throttle, breaking, reset)
 
+        # print(self.last_speed)
         # process data and publish 
         if self.laser_msg is not None:
             self.lidar.ranges = self.convert_lidar_to_laserscan(self.laser_msg)
@@ -89,7 +90,7 @@ def main():
     rospy.init_node("wrapper_node", anonymous=True)
     w = Wrapper()
 
-    rospy.Rate(40)
+    rospy.Rate(15)
     rospy.spin()
     def shutdownhook():
         print("Shutting down lolololol.....")

@@ -5,7 +5,7 @@ car:
   - 0
   - 0
   body_style: car01
-  car_name: TritonRacer
+  car_name: Triton-ROSer
   country: US
   font_size: 30
   guid: some_random_string

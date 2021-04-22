@@ -161,16 +161,16 @@ class LineFollower(object):
                 self.steering += 0.001
             elif self.dir == 1:
                 self.steering -= 0.001
-            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 15 - 2
+            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 16 - 2
         elif self.ct > 28:
             if self.dir == 0:
-                self.steering += 0.001
+                self.steering += 0.0039
             elif self.dir == 1:
-                self.steering -= 0.001
-            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 27 - 2
+                self.steering -= 0.0039
+            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 45 - 2
             
         else:
-            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 33 - 2
+            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 50 - 2
         
         # Publish drive message
         self.a_drive.drive.steering_angle = -self.steering
@@ -242,7 +242,7 @@ def main():
     t = Thread(target = rfg.dummy_publish, daemon=False)
     t.start()
     """
-    rate = rospy.Rate(40)
+    rate = rospy.Rate(15)
     rospy.spin()
 
     def shutdownhook():

@@ -238,7 +238,7 @@ class GymInterface(Component, SDClient):
                 "offset_x" : "0.0", 
                 "offset_y" : "4.5", 
                 "offset_z" : "25", 
-                "rot_x" : "80.0",
+                "rot_x" : "90.0",
                 # "rot_y": "50.0",
         }
         self.send_now(json.dumps(msg))
