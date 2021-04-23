@@ -111,18 +111,19 @@ class LineFollower(object):
                     self.ct += 1 if self.ct < 30 else 0
                     self.dir = 0 if np.mean(x_value) < 110 else 1
                     d = "Left" if self.dir == 0 else "Right"
-                    print(f"{d} turn detected!!!!! Counter: {self.ct}")
+                    print(f"{d} turn detected!!!!! Speed: {self.speed}")
                 else:
-                    self.ct -= 1.7 if self.ct > 1 else 0
+                    self.ct -= 1.3 if self.ct > 1 else 0
 
             cv2.imshow('ylo', rgb)
             
             ########################
             ##### White line testing
-            cv2.fillPoly(self.canny, pts = [self.contours], color = (255, 255, 255))
-            cv2.circle(self.canny, (int(self.centroid[0]), int(self.centroid[1])), 5, (0, 0, 0), -1)
+            # cv2.fillPoly(self.canny, pts = [self.contours], color = (255, 255, 255))
+            rgb = cv2.cvtColor(self.bgr, cv2.COLOR_BGR2RGB)
+            cv2.circle(rgb, (int(self.centroid[0]), int(self.centroid[1])), 5, (0, 0, 0), -1)
             # rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}")
-            cv2.imshow("wte", self.canny)
+            cv2.imshow("wte", rgb)
             cv2.waitKey(60)
     
     def lidar_callback(self, lidar_msg):
@@ -162,15 +163,15 @@ class LineFollower(object):
         # Speed control on turns
         if 28 > self.ct > 0:
             if self.dir == 0:
-                self.steering += 0.0015
+                self.steering += 0.0014
             elif self.dir == 1:
-                self.steering -= 0.0015
+                self.steering -= 0.0014
             self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 16 - 2
         elif self.ct > 28:
             if self.dir == 0:
-                self.steering += 0.0032
+                self.steering += 0.00335
             elif self.dir == 1:
-                self.steering -= 0.0032
+                self.steering -= 0.00335
             self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 45 - 2
             
         else:

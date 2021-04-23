@@ -27,8 +27,7 @@ class Wrapper:
         self.twist_pub = rospy.Publisher('/twist', Twist, queue_size=10)
         self.ImgT = ImageTools()
         self.img, self.img_b = None, None
-        # self.breaking = deque()
-        self.breaking = 10
+        self.smooth_steering = deque()
         self.smooth_throttle = deque()
 
         angle_min = 0
@@ -46,23 +45,27 @@ class Wrapper:
         steering = (drive.drive.steering_angle / self.max_steering) * 180 / np.pi
         throttle = int(drive.drive.speed > self.last_speed)
 
-        # sharp turn breaking
-        # if drive.drive.speed < -1 and self.last_speed > 2:
-        #     self.breaking += 1
-        #     breaking = 1 / (self.breaking * 0.1)
-        #     print(f"Breaking time!! {breaking:.5f} {self.last_speed:.5f}")
-        # else:
-        #     self.breaking = 0
-        
+        # Steering and Throttle control
+        steering = steering if steering < 1 else 1
+        steering_interval = 5
+        self.smooth_steering.appendleft(steering)
+        if len(self.smooth_steering) > steering_interval:
+            self.smooth_steering.pop()
+            steering = sum(self.smooth_steering) / steering_interval
+
+        throttle_interval = 70
         self.smooth_throttle.appendleft(throttle)
-        if len(self.smooth_throttle) > 80:
+        if len(self.smooth_throttle) > throttle_interval:
             self.smooth_throttle.pop()
-            throttle = sum(self.smooth_throttle) / 80
+            throttle = sum(self.smooth_throttle) / throttle_interval
+        
+        if self.last_speed < 8:
+            print(self.last_speed)
+            throttle = 1
         
         # communicate with gyminterface
         self.img, self.img_b, _, _, _, self.last_speed, _, self.laser_msg = self.gym.step(steering, throttle, breaking, reset)
 
-        # print(self.last_speed)
         # process data and publish 
         if self.laser_msg is not None:
             self.lidar.ranges = self.convert_lidar_to_laserscan(self.laser_msg)
