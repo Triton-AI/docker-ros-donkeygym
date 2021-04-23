@@ -158,15 +158,15 @@ class LineFollower(object):
         # Speed control on turns
         if 28 > self.ct > 0:
             if self.dir == 0:
-                self.steering += 0.001
+                self.steering += 0.0015
             elif self.dir == 1:
-                self.steering -= 0.001
+                self.steering -= 0.0015
             self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 16 - 2
         elif self.ct > 28:
             if self.dir == 0:
-                self.steering += 0.0039
+                self.steering += 0.0032
             elif self.dir == 1:
-                self.steering -= 0.0039
+                self.steering -= 0.0032
             self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 45 - 2
             
         else:
@@ -242,7 +242,7 @@ def main():
     t = Thread(target = rfg.dummy_publish, daemon=False)
     t.start()
     """
-    rate = rospy.Rate(15)
+    rate = rospy.Rate(10)
     rospy.spin()
 
     def shutdownhook():

@@ -90,7 +90,7 @@ def main():
     rospy.init_node("wrapper_node", anonymous=True)
     w = Wrapper()
 
-    rospy.Rate(15)
+    rospy.Rate(10)
     rospy.spin()
     def shutdownhook():
         print("Shutting down lolololol.....")
