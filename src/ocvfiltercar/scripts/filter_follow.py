@@ -71,6 +71,7 @@ class LineFollower(object):
         self.last_error, self.last_steering, self.last_speed = None, None, None
         self.last_spot, self.last_border_x = None, None
         self.end = False
+        self.is_adjusted = 0
 
     def dummy_publish(self):
         # Before start
@@ -109,7 +110,8 @@ class LineFollower(object):
                 if std_distro < 1:
                     self.ct += 1 if self.ct < 30 else 0
                     self.dir = 0 if np.mean(x_value) < 110 else 1
-                    # print(f"{self.dir} turn detected!! {self.ct} {std_distro}")
+                    d = "Left" if self.dir == 0 else "Right"
+                    print(f"{d} turn detected!!!!! Counter: {self.ct}")
                 else:
                     self.ct -= 1.7 if self.ct > 1 else 0
 
@@ -119,7 +121,7 @@ class LineFollower(object):
             ##### White line testing
             cv2.fillPoly(self.canny, pts = [self.contours], color = (255, 255, 255))
             cv2.circle(self.canny, (int(self.centroid[0]), int(self.centroid[1])), 5, (0, 0, 0), -1)
-            rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}")
+            # rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}")
             cv2.imshow("wte", self.canny)
             cv2.waitKey(60)
     
@@ -145,6 +147,8 @@ class LineFollower(object):
         # Use white lanes
         error_x, ang = self.extract_white_line()
         if ang:
+            if self.is_adjusted == 3:
+                print("Both!!!!!!")
             self.steering = ang
         else:
         # Calculate speed and steering values
@@ -203,12 +207,15 @@ class LineFollower(object):
 
         steering_ang = None
         # Draw lines
+        self.is_adjusted = 0
         if max_slope_line is None:
             max_slope_line = np.array([[0, mask.shape[0], 0, 0]])
             steering_ang = 0.5
+            self.is_adjusted += 1
         if min_slope_line is None:
             min_slope_line = np.array([[mask.shape[1], 0, mask.shape[1], mask.shape[0]]])
             steering_ang = -0.5
+            self.is_adjusted += 2
 
         # find centroid
         self.centroid = ((max_slope_line[0][0] + max_slope_line[0][2] 

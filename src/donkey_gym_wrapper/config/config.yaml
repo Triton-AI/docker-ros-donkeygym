@@ -1,9 +1,9 @@
 car:
   bio: Something
   body_rgb:
-  - 0
-  - 0
-  - 0
+  - 255
+  - 255
+  - 255
   body_style: car01
   car_name: Triton-ROSer
   country: US
