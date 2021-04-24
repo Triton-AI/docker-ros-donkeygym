@@ -14,7 +14,7 @@ default_connection: remote
 lidar:
   deg_inc: 2
   enabled: true
-  max_range: 50.0
+  max_range: 40.0
   numSweepsLevels: 4
   rot_x: 0
   degAngDelta: 0

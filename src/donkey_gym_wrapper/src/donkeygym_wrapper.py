@@ -37,6 +37,7 @@ class Wrapper:
 
         self.last_speed = 0
         self.called = False
+        print("\n\n")
 
     def drive_callback(self, drive):
         self.called = True
@@ -60,7 +61,7 @@ class Wrapper:
             throttle = sum(self.smooth_throttle) / throttle_interval
         
         if self.last_speed < 8:
-            print(self.last_speed)
+            print(f"Detected low speed, accelerating!! Speed: {self.last_speed:.2f}", end="\r", flush=True)
             throttle = 1
         
         # communicate with gyminterface

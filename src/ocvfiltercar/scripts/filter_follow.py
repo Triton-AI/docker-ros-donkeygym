@@ -111,7 +111,7 @@ class LineFollower(object):
                     self.ct += 1 if self.ct < 30 else 0
                     self.dir = 0 if np.mean(x_value) < 110 else 1
                     d = "Left" if self.dir == 0 else "Right"
-                    print(f"{d} turn detected!!!!! Speed: {self.speed}")
+                    print(f"{d} turn detected!!!!! Speed: {self.speed:.3f}")
                 else:
                     self.ct -= 1.3 if self.ct > 1 else 0
 

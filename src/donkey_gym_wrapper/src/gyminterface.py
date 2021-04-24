@@ -17,24 +17,24 @@ DEFAULT_GYM_CONFIG = {
     'racer_name': 'Triton Racer',
     'bio' : 'Triton-AI',
     'country' : 'US',
-    "guid": "comeondowntosouthparkandmeetsomefriendsofmine",
+    "guid": "Goofus_baller",
 
     'body_style' : 'car01', 
     'body_rgb': (24, 43, 73),
     'car_name' : 'Trident',
     'font_size' : 50,
 
-    "fov" : 70, 
+    "fov" : 0, 
     "fish_eye_x" : 0.0, 
     "fish_eye_y" : 0.0, 
-    "img_w" : 160, 
+    "img_w" : 180, 
     "img_h" : 120, 
     "img_d" : 3, 
     "img_enc" : 'JPG', 
-    "offset_x" : 0.0, 
-    "offset_y" : 3.05, 
-    "offset_z" : 1.0, 
-    "rot_x" : 0.0,
+    "offset_x" : 0, 
+    "offset_y" : 0, 
+    "offset_z" : 0, 
+    "rot_x" : 0,
     # "rot_y": 180,
 
     'scene_name': 'generated_track',
@@ -208,7 +208,7 @@ class GymInterface(Component, SDClient):
 
         #this sleep gives the car time to spawn. Once it's spawned, it's ready for the camera config.
         time.sleep(0.5)
-        '''
+        
         # Camera config     
         msg = { "msg_type" : "cam_config", 
         "fov" : self.gym_config['fov'].__str__(), 
@@ -224,7 +224,7 @@ class GymInterface(Component, SDClient):
         "rot_x" : self.gym_config['rot_x'].__str__() 
         }
         self.send_now(json.dumps(msg))
-       '''
+       
 
        # Camera_b config     
         msg = { "msg_type" : "cam_config_b", 
