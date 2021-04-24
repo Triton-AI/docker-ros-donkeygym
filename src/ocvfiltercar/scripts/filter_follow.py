@@ -163,19 +163,19 @@ class LineFollower(object):
         # Speed control on turns
         if 28 > self.ct > 0:
             if self.dir == 0:
-                self.steering += 0.0015
+                self.steering += 0.002
             elif self.dir == 1:
-                self.steering -= 0.0015
-            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 14 - 2
+                self.steering -= 0.002
+            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 18 - 2
         elif self.ct > 28:
             if self.dir == 0:
-                self.steering += 0.0044
+                self.steering += 0.0047
             elif self.dir == 1:
-                self.steering -= 0.0044
-            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 45 - 2
+                self.steering -= 0.0047
+            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 55
             
         else:
-            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 50 - 2
+            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 65
         
         # Publish drive message
         self.a_drive.drive.steering_angle = -self.steering

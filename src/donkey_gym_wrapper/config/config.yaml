@@ -20,7 +20,7 @@ lidar:
   degAngDelta: 0
 local_connection:
   artificial_latency: 0
-  host: host.docker.internal
+  host: 127.0.0.1
   port: 9091
   scene_name: warren
 remote_connection:
