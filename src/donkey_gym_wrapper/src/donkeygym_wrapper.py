@@ -22,7 +22,7 @@ class Wrapper:
 
         self.drive_sub = rospy.Subscriber('/drive', AckermannDriveStamped, self.drive_callback)
         self.lidar_pub = rospy.Publisher('/lidar', LaserScan, queue_size=10)
-        self.image_pub = rospy.Publisher('/image', Image, queue_size=10)
+        self.image_pub = rospy.Publisher('/image', Image, queue_size=4)
         self.image_pub_b = rospy.Publisher('/imageb', Image, queue_size=10)
         self.twist_pub = rospy.Publisher('/twist', Twist, queue_size=10)
         self.ImgT = ImageTools()
@@ -60,9 +60,9 @@ class Wrapper:
             self.smooth_throttle.pop()
             throttle = sum(self.smooth_throttle) / throttle_interval
         
-        if self.last_speed < 8:
+        if self.last_speed < 9:
             print(f"Detected low speed, accelerating!! Speed: {self.last_speed:.2f}", end="\r", flush=True)
-            throttle = 1
+            throttle += 6 / (self.last_speed + 0.01)
         
         # communicate with gyminterface
         self.img, self.img_b, _, _, _, self.last_speed, _, self.laser_msg = self.gym.step(steering, throttle, breaking, reset)
@@ -94,7 +94,7 @@ def main():
     rospy.init_node("wrapper_node", anonymous=True)
     w = Wrapper()
 
-    rospy.Rate(10)
+    rospy.Rate(15)
     rospy.spin()
     def shutdownhook():
         print("Shutting down lolololol.....")

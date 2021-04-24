@@ -23,7 +23,7 @@ class LineFollower(object):
         self.image_sub = rospy.Subscriber("/image", Image, self.camera_callback)
         self.image_sub_b = rospy.Subscriber("/imageb", Image, self.camera_callback_b)
         self.lidar_sub = rospy.Subscriber('/lidar', LaserScan, self.lidar_callback)
-        self.drive_pub = rospy.Publisher('/drive', AckermannDriveStamped, queue_size=10)
+        self.drive_pub = rospy.Publisher('/drive', AckermannDriveStamped, queue_size=4)
 
         # HSV filter for isolating all lines
         self.bestfilter = {
@@ -163,15 +163,15 @@ class LineFollower(object):
         # Speed control on turns
         if 28 > self.ct > 0:
             if self.dir == 0:
-                self.steering += 0.0014
+                self.steering += 0.0015
             elif self.dir == 1:
-                self.steering -= 0.0014
-            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 16 - 2
+                self.steering -= 0.0015
+            self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 14 - 2
         elif self.ct > 28:
             if self.dir == 0:
-                self.steering += 0.00335
+                self.steering += 0.0044
             elif self.dir == 1:
-                self.steering -= 0.00335
+                self.steering -= 0.0044
             self.speed = 1 / (math.exp(abs(self.steering / 0.048 * 10))) * 45 - 2
             
         else:
@@ -250,7 +250,7 @@ def main():
     t = Thread(target = rfg.dummy_publish, daemon=False)
     t.start()
     """
-    rate = rospy.Rate(10)
+    rate = rospy.Rate(15)
     rospy.spin()
 
     def shutdownhook():

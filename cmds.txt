@@ -19,3 +19,5 @@ my_lap_time:
 1st: 36
 2nd: 33.7, 33.44, 34.55, 33.6
 New: 32.7, 32.48
+
+GnomeKeyring
