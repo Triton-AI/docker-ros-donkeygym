@@ -73,6 +73,8 @@ class LineFollower(object):
         self.end = False
         self.is_adjusted = 0
 
+        self.max_e = 0
+
     def dummy_publish(self):
         # Before start
         print("\n")
@@ -111,7 +113,7 @@ class LineFollower(object):
                     self.ct += 1 if self.ct < 30 else 0
                     self.dir = 0 if np.mean(x_value) < 110 else 1
                     d = "Left" if self.dir == 0 else "Right"
-                    print(f"{d} turn detected!!!!! Speed: {self.speed:.3f}")
+                    # print(f"{d} turn detected!!!!! Speed: {self.speed:.3f}")
                 else:
                     self.ct -= 1.3 if self.ct > 1 else 0
 
@@ -147,9 +149,14 @@ class LineFollower(object):
         
         # Use white lanes
         error_x, ang = self.extract_white_line()
+        if abs(error_x) > abs(self.max_e):
+            self.max_e = error_x
+            print(self.max_e / 8)
+
+        
         if ang:
-            if self.is_adjusted == 3:
-                print("Both!!!!!!")
+            # if self.is_adjusted == 3:
+                # print("Both!!!!!!")
             self.steering = ang
         else:
         # Calculate speed and steering values
