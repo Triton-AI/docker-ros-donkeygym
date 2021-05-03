@@ -73,7 +73,7 @@ class LineFollower(object):
         self.end = False
         self.is_adjusted = 0
 
-        self.max_e = 0
+        self.max_e, self.error_array = 0, np.array([])
 
     def dummy_publish(self):
         # Before start
@@ -121,12 +121,13 @@ class LineFollower(object):
             
             ########################
             ##### White line testing
-            # cv2.fillPoly(self.canny, pts = [self.contours], color = (255, 255, 255))
-            rgb = cv2.cvtColor(self.bgr, cv2.COLOR_BGR2RGB)
-            cv2.circle(rgb, (int(self.centroid[0]), int(self.centroid[1])), 5, (0, 0, 0), -1)
+            cv2.fillPoly(self.bgr, pts = [self.contours], color = (255, 255, 255))
+            cv2.circle(self.bgr, (int(self.centroid[0]), int(self.centroid[1])), 5, (0, 0, 0), -1)
             # rospy.loginfo(f"Speed: {self.a_drive.drive.speed:.4f} Steering: {self.a_drive.drive.steering_angle:.4f}")
-            cv2.imshow("wte", rgb)
+            cv2.imshow("wte", self.bgr)
             cv2.waitKey(60)
+        cv2.destroyAllWindows()
+        sys.exit(1)
     
     def lidar_callback(self, lidar_msg):
         self.ranges = lidar_msg.ranges
@@ -144,14 +145,27 @@ class LineFollower(object):
         cv_image = self.bridge_object.imgmsg_to_cv2(data, "bgr8")  # We select bgr8 because its the OpneCV encoding by default
 
         # Crop image
-        height, width, channels = cv_image.shape
-        self.bgr = cv_image[int(height * (2 / 5)):int(height * (3 / 4)), :]
+        height, _, _ = cv_image.shape
+        self.bgr = cv_image[int(height * (2.5 / 5)):int(height * (3 / 4)), :]
         
         # Use white lanes
         error_x, ang = self.extract_white_line()
+
+        self.error_array = np.append(self.error_array, error_x)
+        # self.error_array = self.reject_outliers(self.error_array)
+
+        if len(self.error_array) > 5:
+            self.error_array = np.delete(self.error_array, 0)
+            # print(self.error_array)
+        error_x1 = np.mean(self.error_array)
+        if abs(abs(error_x) - abs(error_x1)) > 10:
+            print(f"{error_x:.3f}, {error_x1:.3f}, {abs(error_x) - abs(error_x1):.2f}")
+            # error_x = error_x1
+
         if abs(error_x) > abs(self.max_e):
             self.max_e = error_x
-            print(self.max_e / 8)
+            print(self.max_e / 20)
+        
 
         
         if ang:
@@ -186,8 +200,14 @@ class LineFollower(object):
         
         # Publish drive message
         self.a_drive.drive.steering_angle = -self.steering
-        self.a_drive.drive.speed = self.speed
+        self.a_drive.drive.speed = 1 # self.speed
         self.drive_pub.publish(self.a_drive)
+
+    def reject_outliers(self, data, m = 50):
+        d = np.abs(data - np.median(data))
+        mdev = np.median(d)
+        s = d / mdev if mdev else 0
+        return data[s < m]
 
     def extract_white_line(self):
         mask = cv2.inRange(self.bgr, self.border_lower, self.border_higher)
@@ -200,16 +220,27 @@ class LineFollower(object):
         max_slope_line = None
         min_slope_line = None
 
+        max_dist_left = 0
+        max_dist_right = 0
+
         # For each line, best left line is max slope, best right line is min slope
         if lines is not None:
             for line in lines:
                 x1, y1, x2, y2 = line[0]
+
+                cv2.line(self.bgr, (x1, y1),
+                   (x2, y2), (255, 0, 0), 3)
+
                 if x2 - x1 != 0:
                     slope = - (y2 - y1) / (x2 - x1)
-                    if slope > max_slope:
+
+                    dist = np.sum(np.square(np.array([x1, y1]) - np.array([x2, y2])))
+                    if slope > max_slope and dist > max_dist_left - 10:
+                        max_dist_left = dist
                         max_slope = slope
                         max_slope_line = line
-                    elif slope < min_slope:
+                    elif slope < min_slope and dist > max_dist_right - 10:
+                        max_dist_right = dist
                         min_slope = slope
                         min_slope_line = line
 
@@ -224,6 +255,10 @@ class LineFollower(object):
             min_slope_line = np.array([[mask.shape[1], 0, mask.shape[1], mask.shape[0]]])
             steering_ang = -0.5
             self.is_adjusted += 2
+        # cv2.line(self.bgr, (min_slope_line[0][0], min_slope_line[0][1]),
+        #         (min_slope_line[0][2], min_slope_line[0][3]), (255, 0, 0), 3)
+        
+        
 
         # find centroid
         self.centroid = ((max_slope_line[0][0] + max_slope_line[0][2] 

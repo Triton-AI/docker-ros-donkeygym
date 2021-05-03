@@ -60,7 +60,7 @@ class Wrapper:
             self.smooth_throttle.pop()
             throttle = sum(self.smooth_throttle) / throttle_interval
         
-        if self.last_speed < 9:
+        if self.last_speed < 0:
             print(f"Detected low speed, accelerating!! Speed: {self.last_speed:.2f}", end="\r", flush=True)
             throttle += 6 / (self.last_speed + 0.01)
         
