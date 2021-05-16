@@ -1,13 +1,15 @@
 <launch>
   <arg name="config" default="I_dont_know" />
   <arg name="cf_path" default="donkey_gym_wrapper/config/config.yaml" />
+  <arg name="port" default="127.0.0.1" />
   <!-- <include file="/catkin_ws/src/ocvfiltercar/launch/rcar.launch" /> -->
-  <node pkg="donkey_gym_wrapper" type="donkeygym_wrapper.py" name="donkeygym_wrapper" output="screen" >
-    <param name="cam" value="$(arg config)" />
-    <param name="nn_path" value="$(arg cf_path)" />
+  <node pkg="vesc_driver" type="vesc_driver_node" name="node_name" output="screen" >
+    <param name="port" value="127.0.0.1" />
   </node>
-  <node pkg="vesc_driver" type="vesc_driver_node" name="$arg node_name" output="screen" >
-    <param name="port" value="$(arg port)">
+  
+  <node pkg="donkey_gym_wrapper" type="videoloop.py" name="videoloop" output="screen">
+  </node>
+  <node pkg="donkey_gym_wrapper" type="donkeygym_wrapper.py" name="donkeygym_wrapper" output="screen">
   </node>
   <!--
   <node pkg="ocvfiltercar" name="filter_follow" type="filter_follow.py" output="screen">
