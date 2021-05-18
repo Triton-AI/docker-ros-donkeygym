@@ -12,7 +12,7 @@ from geometry_msgs.msg import Twist
 from gyminterface import GymInterface
 from sensor_msgs.msg import Image, LaserScan
 from ackermann_msgs.msg import AckermannDriveStamped
-
+import cv2
 
 class Wrapper:
     def __init__(self):
@@ -89,7 +89,7 @@ class Wrapper:
         mapped_ranges[np.array(list(map(lambda d: d["rx"], laser_msg)))] = np.array(list((map(lambda d: d["d"], laser_msg))))
         return mapped_ranges
 
-
+"""
 def main():
     rospy.init_node("wrapper_node", anonymous=True)
     w = Wrapper()
@@ -102,6 +102,25 @@ def main():
 
     rospy.on_shutdown(shutdownhook)
 
+"""
+def main():
+    rospy.init_node("wrapper_node", anonymous=True)
+    image_pub = rospy.Publisher('/image', Image, queue_size=4)
+    image_tool = ImageTools()
+    cv2.VideoCapture(0)
+    while(True):
+        ret, frame = vid.read()
+        ros_img = self.ImgT.convert_cv2_to_ros_msg(frame)
+        cv2.imshow('frame', frame)
+        image_pub.publish(ros_img)
+        
+    def shutdownhook():
+        print("Shutting down lolololol.....")
+        sys.exit(1)
+
+    rospy.on_shutdown(shutdownhook)
+    vid.release()
+    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     main()

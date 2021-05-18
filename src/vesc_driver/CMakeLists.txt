@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(vesc_driver)
 
+set(CMAKE_PREFIX_PATH "/tmp/usr/local/setup.sh")
+
 # Set minimum C++ standard to C++11
 if (NOT "${CMAKE_CXX_STANDARD_COMPUTED_DEFAULT}")
   message(STATUS "Changing CXX_STANDARD from C++98 to C++11")

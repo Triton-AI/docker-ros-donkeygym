@@ -20,9 +20,9 @@
   <depend>nodelet</depend>
   <depend>pluginlib</depend>
   <depend>roscpp</depend>
-  <depend>serial</depend>
   <depend>std_msgs</depend>
   <depend>vesc_msgs</depend>
+  <depend>rosserial</depend>
 
   <export>
     <nodelet plugin="${prefix}/vesc_driver_nodelet.xml"/>

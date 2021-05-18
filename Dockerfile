@@ -19,6 +19,13 @@ RUN python3 -m pip install -U scikit-learn
 RUN apt-get install ros-noetic-ackermann-msgs
 RUN mkdir -p /catkin_ws/src
 
+RUN mkdir -p /catkin_ws/src/ocvfiltercar
+RUN mkdir -p /catkin_ws/src/donkey_gym_wrapper
+RUN mkdir -p /catkin_ws/src/vesc
+RUN mkdir -p /catkin_ws/src/vesc_ackermann
+RUN mkdir -p /catkin_ws/src/vesc_driver
+RUN mkdir -p /catkin_ws/src/vesc_msgs
+
 RUN git clone https://github.com/tawnkramer/gym-donkeycar
 RUN python3 -m pip install -e gym-donkeycar
 
@@ -28,16 +35,12 @@ RUN python3 -m pip install -e gym-donkeycar
 # e.g. COPY src/ackermann_msgs  /catkin_ws/src/ackermann_msgs 
 
 # Copies OpenCV Filtering Catkin PKG
-COPY src/ocvfiltercar /catkin_ws/src/ocvfiltercar/
-COPY src/donkey_gym_wrapper /catkin_ws/src/donkey_gym_wrapper/
-
-COPY src/vesc /catkin_ws/src/vesc/
-COPY src/vesc_ackermann /catkin_ws/src/vesc_ackermann/
-COPY src/vesc_msgs /catkin_ws/src/vesc_msgs/
-COPY src/vesc_driver /catkin_ws/src/vesc_driver/
+COPY src/ /catkin_ws/src/
 COPY rlaunch.bash / 
 COPY rcar.bash /
-
+RUN ls /catkin_ws/src
+RUN rosdep update
+RUN rosdep install --from-paths /catkin_ws/src -i -y
 SHELL ["/bin/bash", "-c"] 
 RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; cd /catkin_ws; catkin_make'
 # CMD ["/bin/bash", "-c", ". /catkin_ws/devel/setup.bash"]
