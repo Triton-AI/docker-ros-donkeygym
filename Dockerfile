@@ -28,12 +28,14 @@ RUN python3 -m pip install -e gym-donkeycar
 # e.g. COPY src/ackermann_msgs  /catkin_ws/src/ackermann_msgs 
 
 # Copies OpenCV Filtering Catkin PKG
-COPY src/ocvfiltercar /catkin_ws/src/ocvfiltercar/
-COPY src/donkey_gym_wrapper /catkin_ws/src/donkey_gym_wrapper/
-COPY src/vesc /catkin_ws/src/vesc/
-COPY src/vesc_ackermann /catkin_ws/src/vesc_ackermann/
-COPY src/vesc_driver /catkin_ws/src/vesc_driver/
-COPY src/vesc_msgs /catkin_ws/src/vesc_msgs/
+#COPY src/ocvfiltercar /catkin_ws/src/ocvfiltercar/
+#COPY src/donkey_gym_wrapper /catkin_ws/src/donkey_gym_wrapper/
+#COPY src/vesc /catkin_ws/src/vesc/
+#COPY src/vesc_ackermann /catkin_ws/src/vesc_ackermann/
+#COPY src/vesc_driver /catkin_ws/src/vesc_driver/
+#COPY src/vesc_msgs /catkin_ws/src/vesc_msgs/
+
+COPY src /catkin_ws/src/
 COPY rlaunch.bash / 
 COPY rcar.bash /
 
